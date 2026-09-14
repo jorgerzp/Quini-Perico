@@ -1,0 +1,675 @@
+import express from "express";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";
+
+const app = express();
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Semillado inicial de los 8 usuarios oficiales y el Bote
+async function seedDatabase() {
+  try {
+    const totalUsuarios = await prisma.usuario.count();
+    if (totalUsuarios === 0) {
+      const usuariosIniciales = [
+        { nombre: "Jorge", rol: "superadmin", puntos: 20, aciertos: 10, avatarColor: "blue" },
+        { nombre: "Rafa", rol: "user", puntos: 14, aciertos: 7, avatarColor: "emerald" },
+        { nombre: "Miguel", rol: "user", puntos: 11, aciertos: 5, avatarColor: "amber" },
+        { nombre: "Acuña", rol: "user", puntos: 18, aciertos: 9, avatarColor: "indigo" },
+        { nombre: "Andrés", rol: "user", puntos: 12, aciertos: 6, avatarColor: "rose" },
+        { nombre: "Mora", rol: "user", puntos: 15, aciertos: 8, avatarColor: "purple" },
+        { nombre: "Vergara", rol: "user", puntos: 9, aciertos: 4, avatarColor: "cyan" },
+        { nombre: "Ale", rol: "user", puntos: 16, aciertos: 8, avatarColor: "orange" },
+      ];
+
+      for (const u of usuariosIniciales) {
+        await prisma.usuario.create({ data: u });
+      }
+      console.log("8 usuarios iniciales creados correctamente (Jorge como superadmin).");
+    }
+
+    const totalBote = await prisma.bote.count();
+    if (totalBote === 0) {
+      const bote = await prisma.bote.create({
+        data: {
+          acumulado: 80.0,
+        },
+      });
+
+      await prisma.movimientoBote.create({
+        data: {
+          cantidad: 80.0,
+          concepto: "Fondo inicial de temporada (10€ x 8 amigos)",
+          autor: "Jorge (Superadmin)",
+          boteId: bote.id,
+        },
+      });
+      console.log("Bote inicial de 80.00€ creado correctamente.");
+    }
+
+    const totalJornadas = await prisma.jornada.count();
+    if (totalJornadas === 0) {
+      await prisma.jornada.create({
+        data: {
+          numero: 1,
+          activa: true,
+          resultados: null,
+        },
+      });
+      console.log("Jornada 1 activa inicializada.");
+    }
+  } catch (error) {
+    console.error("Error al sembrar la base de datos:", error);
+  }
+}
+
+seedDatabase();
+
+// --- ENDPOINT AUTENTICACIÓN (LOGIN) ---
+app.post("/api/login", async (req, res) => {
+  try {
+    const { nombre, password } = req.body;
+
+    if (!nombre || !password) {
+      return res.status(400).json({ error: "Introduce tu nombre y la contraseña." });
+    }
+
+    if (password.trim() !== "PuertoPerico") {
+      return res.status(401).json({ error: "Contraseña incorrecta. Recuerda que es PuertoPerico." });
+    }
+
+    // Búsqueda flexible (insensible a mayúsculas y acentos) para los 8 miembros
+    const usuarios = await prisma.usuario.findMany();
+    const normalize = (str) =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+    const cleanInput = normalize(nombre);
+    const usuario = usuarios.find((u) => normalize(u.nombre) === cleanInput);
+
+    if (!usuario) {
+      return res.status(404).json({
+        error: `El usuario '${nombre.trim()}' no existe en la peña. Los miembros son: Jorge, Rafa, Miguel, Acuña, Andrés, Mora, Vergara, Ale.`,
+      });
+    }
+
+    res.json({
+      message: "Login correcto.",
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        puntos: usuario.puntos,
+        aciertos: usuario.aciertos,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Error de autenticación en el servidor." });
+  }
+});
+
+// --- ENDPOINTS USUARIOS ---
+app.get("/api/usuarios", async (_req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      orderBy: { puntos: "desc" },
+    });
+
+    // Obtener la jornada activa
+    const jornadaActiva = await prisma.jornada.findFirst({
+      where: { activa: true },
+    });
+
+    let jugadasJornada = [];
+    if (jornadaActiva) {
+      jugadasJornada = await prisma.jugada.findMany({
+        where: { jornadaId: jornadaActiva.id },
+      });
+    }
+
+    const usuariosConEstado = usuarios.map((u) => {
+      const jugada = jugadasJornada.find((j) => j.usuarioId === u.id);
+      return {
+        ...u,
+        haJugado: !!jugada,
+        jugadaActual: jugada ? JSON.parse(jugada.pronosticos || "{}") : null,
+      };
+    });
+
+    res.json(usuariosConEstado);
+  } catch (error) {
+    console.error("Error al obtener usuarios:", error);
+    res.status(500).json({ error: "No se pudieron obtener los usuarios." });
+  }
+});
+
+// --- ENDPOINTS BOTE ---
+app.get("/api/bote", async (_req, res) => {
+  try {
+    let bote = await prisma.bote.findFirst({
+      include: {
+        movimientos: {
+          orderBy: { fecha: "desc" },
+        },
+      },
+    });
+
+    if (!bote) {
+      bote = await prisma.bote.create({
+        data: { acumulado: 0 },
+        include: { movimientos: true },
+      });
+    }
+
+    res.json(bote);
+  } catch (error) {
+    console.error("Error al obtener el bote:", error);
+    res.status(500).json({ error: "No se pudo obtener el bote." });
+  }
+});
+
+// Añadir suma al bote (Superadmin)
+app.post("/api/bote/sumar", async (req, res) => {
+  try {
+    const { cantidad, concepto, autor } = req.body;
+    const numCantidad = parseFloat(cantidad);
+
+    if (isNaN(numCantidad) || numCantidad <= 0) {
+      return res.status(400).json({ error: "La cantidad debe ser un número mayor que 0." });
+    }
+
+    let bote = await prisma.bote.findFirst();
+    if (!bote) {
+      bote = await prisma.bote.create({ data: { acumulado: 0 } });
+    }
+
+    const nuevoAcumulado = parseFloat((bote.acumulado + numCantidad).toFixed(2));
+
+    const boteActualizado = await prisma.bote.update({
+      where: { id: bote.id },
+      data: {
+        acumulado: nuevoAcumulado,
+        movimientos: {
+          create: {
+            cantidad: numCantidad,
+            concepto: concepto || "Incremento manual de bote",
+            autor: autor || "Jorge (Superadmin)",
+          },
+        },
+      },
+      include: {
+        movimientos: {
+          orderBy: { fecha: "desc" },
+        },
+      },
+    });
+
+    res.status(201).json({
+      message: `¡Se han añadido +${numCantidad.toFixed(2)}€ al bote!`,
+      bote: boteActualizado,
+    });
+  } catch (error) {
+    console.error("Error al sumar al bote:", error);
+    res.status(500).json({ error: "No se pudo actualizar el bote." });
+  }
+});
+
+// Añadir ganancias de la jornada al bote (Superadmin)
+app.post("/api/bote/ganancia", async (req, res) => {
+  try {
+    const { cantidad, jornada, aciertos, fecha, concepto } = req.body;
+    const numCantidad = parseFloat(cantidad);
+
+    if (isNaN(numCantidad) || numCantidad <= 0) {
+      return res.status(400).json({ error: "La cantidad ganada debe ser un número mayor que 0." });
+    }
+
+    let bote = await prisma.bote.findFirst();
+    if (!bote) {
+      bote = await prisma.bote.create({ data: { acumulado: 0 } });
+    }
+
+    const nuevoAcumulado = parseFloat((bote.acumulado + numCantidad).toFixed(2));
+    const fechaRegistro = fecha ? new Date(fecha) : new Date();
+
+    const boteActualizado = await prisma.bote.update({
+      where: { id: bote.id },
+      data: {
+        acumulado: nuevoAcumulado,
+        movimientos: {
+          create: {
+            cantidad: numCantidad,
+            jornada: jornada ? parseInt(jornada, 10) : 1,
+            aciertos: aciertos ? String(aciertos) : "N/A",
+            concepto: concepto || `Ganancias Jornada ${jornada || 1}`,
+            autor: "Jorge (Superadmin)",
+            fecha: fechaRegistro,
+          },
+        },
+      },
+      include: {
+        movimientos: {
+          orderBy: { fecha: "desc" },
+        },
+      },
+    });
+
+    res.status(201).json({
+      message: `¡Se han sumado +${numCantidad.toFixed(2)}€ de ganancias al bote!`,
+      bote: boteActualizado,
+    });
+  } catch (error) {
+    console.error("Error al registrar ganancia en el bote:", error);
+    res.status(500).json({ error: "No se pudo registrar la ganancia en el bote." });
+  }
+});
+
+// --- ENDPOINTS CLASIFICACIÓN (Ordenado por Aciertos Totales) ---
+app.get("/api/clasificacion", async (_req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      orderBy: [{ aciertos: "desc" }, { puntos: "desc" }, { nombre: "asc" }],
+    });
+
+    const ranking = usuarios.map((u, index) => ({
+      posicion: index + 1,
+      ...u,
+    }));
+
+    res.json(ranking);
+  } catch (error) {
+    console.error("Error al obtener clasificación:", error);
+    res.status(500).json({ error: "No se pudo obtener la clasificación." });
+  }
+});
+
+// --- ENDPOINTS JUGADAS (QUINIGOL) ---
+app.get("/api/jugadas", async (_req, res) => {
+  try {
+    const jugadas = await prisma.jugada.findMany({
+      orderBy: { fecha_creacion: "desc" },
+      include: {
+        usuario: true,
+        jornada: true,
+      },
+    });
+
+    const jugadasFormateadas = jugadas.map((j) => {
+      let datos;
+      try {
+        datos = JSON.parse(j.pronosticos || j.numeros || "{}");
+      } catch {
+        datos = j.pronosticos || j.numeros;
+      }
+      return {
+        ...j,
+        datos,
+      };
+    });
+
+    res.json(jugadasFormateadas);
+  } catch (error) {
+    console.error("Error al obtener jugadas:", error);
+    res.status(500).json({ error: "No se pudieron obtener las jugadas." });
+  }
+});
+
+app.post("/api/jugadas", async (req, res) => {
+  try {
+    const { usuarioId, pronosticos } = req.body;
+    const datosPronosticos = pronosticos || req.body;
+
+    if (!datosPronosticos || Object.keys(datosPronosticos).length === 0) {
+      return res.status(400).json({ error: "Debes enviar un pronóstico válido." });
+    }
+
+    // Buscar usuario o asignar Jorge por defecto si no viene id
+    let usuario;
+    if (usuarioId) {
+      usuario = await prisma.usuario.findUnique({ where: { id: Number(usuarioId) } });
+    }
+    if (!usuario) {
+      usuario = await prisma.usuario.findFirst({ where: { nombre: "Jorge" } });
+    }
+
+    // Buscar jornada activa
+    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) {
+      jornada = await prisma.jornada.create({ data: { numero: 1, activa: true } });
+    }
+
+    // Guardar o actualizar la jugada del usuario para esta jornada
+    const serializado = JSON.stringify(datosPronosticos);
+
+    const jugadaExistente = await prisma.jugada.findFirst({
+      where: {
+        usuarioId: usuario.id,
+        jornadaId: jornada.id,
+      },
+    });
+
+    let jugada;
+    if (jugadaExistente) {
+      jugada = await prisma.jugada.update({
+        where: { id: jugadaExistente.id },
+        data: {
+          pronosticos: serializado,
+          numeros: serializado,
+        },
+        include: { usuario: true },
+      });
+    } else {
+      jugada = await prisma.jugada.create({
+        data: {
+          usuarioId: usuario.id,
+          jornadaId: jornada.id,
+          pronosticos: serializado,
+          numeros: serializado,
+        },
+        include: { usuario: true },
+      });
+    }
+
+    res.status(201).json({
+      message: `¡Boleto de ${usuario.nombre} guardado correctamente!`,
+      jugada: {
+        ...jugada,
+        datos: datosPronosticos,
+      },
+    });
+  } catch (error) {
+    console.error("Error al guardar jugada:", error);
+    res.status(500).json({ error: "No se pudo guardar la jugada." });
+  }
+});
+
+// --- ENDPOINTS PARTIDOS DE LA JORNADA (OCR Y CONFIGURACIÓN) ---
+const PARTIDOS_DEFECTO = [
+  { id: 1, key: "partido1", numStr: "01", home: "Real Madrid", away: "FC Barcelona", homeCode: "RMA", awayCode: "FCB" },
+  { id: 2, key: "partido2", numStr: "02", home: "Atlético de Madrid", away: "Athletic Club", homeCode: "ATM", awayCode: "ATH" },
+  { id: 3, key: "partido3", numStr: "03", home: "Real Betis", away: "Sevilla FC", homeCode: "BET", awayCode: "SEV" },
+  { id: 4, key: "partido4", numStr: "04", home: "Valencia CF", away: "Villarreal CF", homeCode: "VAL", awayCode: "VIL" },
+  { id: 5, key: "partido5", numStr: "05", home: "Real Sociedad", away: "Girona FC", homeCode: "RSO", awayCode: "GIR" },
+  { id: 6, key: "partido6", numStr: "06", home: "RCD Espanyol", away: "RC Celta de Vigo", homeCode: "ESP", awayCode: "CEL" },
+];
+
+app.get("/api/jornada/partidos", async (_req, res) => {
+  try {
+    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) {
+      jornada = await prisma.jornada.create({
+        data: {
+          numero: 1,
+          activa: true,
+          partidos: JSON.stringify(PARTIDOS_DEFECTO),
+        },
+      });
+    }
+
+    let partidos = PARTIDOS_DEFECTO;
+    if (jornada.partidos) {
+      try {
+        const parsed = JSON.parse(jornada.partidos);
+        if (Array.isArray(parsed) && parsed.length === 6) {
+          partidos = parsed;
+        }
+      } catch {
+        partidos = PARTIDOS_DEFECTO;
+      }
+    }
+
+    res.json({
+      jornada: jornada.numero,
+      activa: jornada.activa,
+      partidos,
+      imagenBoleto: jornada.imagenBoleto,
+    });
+  } catch (error) {
+    console.error("Error al obtener partidos:", error);
+    res.status(500).json({ error: "No se pudieron obtener los partidos de la jornada." });
+  }
+});
+
+app.post("/api/jornada/partidos", async (req, res) => {
+  try {
+    const { partidos, imagenBoleto } = req.body;
+
+    if (!Array.isArray(partidos) || partidos.length !== 6) {
+      return res.status(400).json({ error: "Se deben definir exactamente 6 partidos para el Quinigol." });
+    }
+
+    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) {
+      jornada = await prisma.jornada.create({
+        data: { numero: 1, activa: true },
+      });
+    }
+
+    const partidosFormateados = partidos.map((p, idx) => ({
+      id: idx + 1,
+      key: `partido${idx + 1}`,
+      numStr: String(idx + 1).padStart(2, "0"),
+      home: (p.home || `Local ${idx + 1}`).trim(),
+      away: (p.away || `Visitante ${idx + 1}`).trim(),
+      homeCode: (p.homeCode || (p.home ? p.home.substring(0, 3).toUpperCase() : `L0${idx + 1}`)).trim(),
+      awayCode: (p.awayCode || (p.away ? p.away.substring(0, 3).toUpperCase() : `V0${idx + 1}`)).trim(),
+    }));
+
+    const dataUpdate = {
+      partidos: JSON.stringify(partidosFormateados),
+    };
+
+    if (imagenBoleto !== undefined) {
+      dataUpdate.imagenBoleto = imagenBoleto;
+    }
+
+    const jornadaActualizada = await prisma.jornada.update({
+      where: { id: jornada.id },
+      data: dataUpdate,
+    });
+
+    res.json({
+      message: "¡Partidos de la jornada actualizados y aplicados con éxito!",
+      partidos: partidosFormateados,
+      imagenBoleto: jornadaActualizada.imagenBoleto,
+    });
+  } catch (error) {
+    console.error("Error al actualizar partidos:", error);
+    res.status(500).json({ error: "No se pudieron actualizar los partidos de la jornada." });
+  }
+});
+
+// --- ENDPOINTS RESULTADOS OFICIALES Y CÁLCULO DE PUNTUACIONES ---
+app.get("/api/resultados", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({
+      where: { activa: true },
+    });
+
+    let resultados = null;
+    let disponible = false;
+
+    if (jornada?.resultados) {
+      try {
+        resultados = JSON.parse(jornada.resultados);
+        // Comprobar si hay al menos un pronóstico no nulo introducido por Jorge
+        if (
+          resultados &&
+          Object.values(resultados).some((p) => p.local !== null || p.visitante !== null)
+        ) {
+          disponible = true;
+        }
+      } catch {
+        resultados = null;
+        disponible = false;
+      }
+    }
+
+    res.json({
+      jornada: jornada ? jornada.numero : 1,
+      activa: jornada ? jornada.activa : true,
+      disponible,
+      resultados,
+    });
+  } catch (error) {
+    console.error("Error al obtener resultados:", error);
+    res.status(500).json({ error: "No se pudieron obtener los resultados." });
+  }
+});
+
+// Reiniciar / Limpiar resultados de la jornada (Superadmin)
+app.delete("/api/resultados", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (jornada) {
+      await prisma.jornada.update({
+        where: { id: jornada.id },
+        data: { resultados: null },
+      });
+    }
+    res.json({ message: "Resultados oficiales reiniciados. Estado: aún no disponible." });
+  } catch (error) {
+    console.error("Error al reiniciar resultados:", error);
+    res.status(500).json({ error: "Error al reiniciar resultados oficiales." });
+  }
+});
+
+// Guardar resultados oficiales y calcular puntos para todos los participantes
+app.post("/api/resultados", async (req, res) => {
+  try {
+    const { resultados } = req.body;
+
+    if (!resultados || typeof resultados !== "object") {
+      return res.status(400).json({ error: "Debes enviar los resultados de los partidos." });
+    }
+
+    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) {
+      jornada = await prisma.jornada.create({ data: { numero: 1, activa: true } });
+    }
+
+    // Guardar resultados oficiales
+    await prisma.jornada.update({
+      where: { id: jornada.id },
+      data: {
+        resultados: JSON.stringify(resultados),
+      },
+    });
+
+    // Calcular puntos de cada jugada de la jornada
+    const jugadas = await prisma.jugada.findMany({
+      where: { jornadaId: jornada.id },
+      include: { usuario: true },
+    });
+
+    const desglose = [];
+
+    for (const jugada of jugadas) {
+      let pronosticosObj = {};
+      try {
+        pronosticosObj = JSON.parse(jugada.pronosticos || "{}");
+      } catch {
+        pronosticosObj = {};
+      }
+
+      let puntosJornada = 0;
+      let aciertosJornada = 0;
+
+      for (let i = 1; i <= 6; i++) {
+        const key = `partido${i}`;
+        const oficial = resultados[key];
+        const pronostico = pronosticosObj[key];
+
+        if (oficial && pronostico) {
+          // Acierto goles local (1 punto)
+          if (oficial.local && oficial.local === pronostico.local) {
+            puntosJornada += 1;
+            aciertosJornada += 1;
+          }
+          // Acierto goles visitante (1 punto)
+          if (oficial.visitante && oficial.visitante === pronostico.visitante) {
+            puntosJornada += 1;
+            aciertosJornada += 1;
+          }
+          // Pleno al partido (bonus de 1 punto extra)
+          if (
+            oficial.local &&
+            oficial.local === pronostico.local &&
+            oficial.visitante &&
+            oficial.visitante === pronostico.visitante
+          ) {
+            puntosJornada += 1;
+          }
+        }
+      }
+
+      // Actualizar puntos de la jugada
+      await prisma.jugada.update({
+        where: { id: jugada.id },
+        data: { puntosObtenidos: puntosJornada },
+      });
+
+      // Sumar al usuario
+      await prisma.usuario.update({
+        where: { id: jugada.usuarioId },
+        data: {
+          puntos: { increment: puntosJornada },
+          aciertos: { increment: aciertosJornada },
+        },
+      });
+
+      desglose.push({
+        usuario: jugada.usuario.nombre,
+        puntosJornada,
+        aciertosJornada,
+      });
+    }
+
+    res.json({
+      message: "¡Resultados oficiales registrados y puntuaciones calculadas con éxito!",
+      desglose,
+    });
+  } catch (error) {
+    console.error("Error al calcular resultados:", error);
+    res.status(500).json({ error: "No se pudieron calcular las puntuaciones." });
+  }
+});
+
+// Modificar puntos manualmente (Superadmin)
+app.post("/api/usuarios/puntos", async (req, res) => {
+  try {
+    const { usuarioId, puntosDelta, motivo } = req.body;
+    const delta = parseInt(puntosDelta, 10);
+
+    if (isNaN(delta)) {
+      return res.status(400).json({ error: "Los puntos deben ser un número válido." });
+    }
+
+    const usuario = await prisma.usuario.update({
+      where: { id: Number(usuarioId) },
+      data: {
+        puntos: { increment: delta },
+      },
+    });
+
+    res.json({
+      message: `Puntos de ${usuario.nombre} actualizados (${delta > 0 ? "+" : ""}${delta} pts por ${motivo || "ajuste de admin"}).`,
+      usuario,
+    });
+  } catch (error) {
+    console.error("Error al modificar puntos:", error);
+    res.status(500).json({ error: "No se pudieron modificar los puntos." });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor QUINI-PERICO (Apple Quinigol) corriendo en http://localhost:${PORT}`);
+});

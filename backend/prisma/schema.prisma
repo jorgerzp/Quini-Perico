@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id             Int      @id @default(autoincrement())
+  nombre         String   @unique
+  password       String   @default("PuertoPerico")
+  rol            String   @default("user") // "superadmin" para Jorge
+  puntos         Int      @default(0)
+  aciertos       Int      @default(0)
+  avatarColor    String   @default("blue")
+  fecha_creacion DateTime @default(now())
+  jugadas        Jugada[]
+}
+
+model Bote {
+  id          Int              @id @default(autoincrement())
+  acumulado   Float            @default(0.0)
+  actualizado DateTime         @updatedAt
+  movimientos MovimientoBote[]
+}
+
+model MovimientoBote {
+  id        Int      @id @default(autoincrement())
+  cantidad  Float
+  concepto  String
+  jornada   Int?     @default(1)
+  aciertos  String?
+  autor     String   @default("Jorge")
+  fecha     DateTime @default(now())
+  boteId    Int?
+  bote      Bote?    @relation(fields: [boteId], references: [id])
+}
+
+model Jornada {
+  id           Int      @id @default(autoincrement())
+  numero       Int      @default(1)
+  activa       Boolean  @default(true)
+  partidos     String?  // JSON con los 6 partidos oficiales de la jornada
+  imagenBoleto String?  // Foto del boleto subida por Jorge
+  resultados   String?  // JSON con resultados oficiales
+  fecha        DateTime @default(now())
+  jugadas      Jugada[]
+}
+
+model Jugada {
+  id              Int      @id @default(autoincrement())
+  usuarioId       Int?
+  usuario         Usuario? @relation(fields: [usuarioId], references: [id])
+  jornadaId       Int?
+  jornada         Jornada? @relation(fields: [jornadaId], references: [id])
+  pronosticos     String?  // JSON de la jugada Quinigol
+  numeros         String?  // Compatibilidad
+  puntosObtenidos Int      @default(0)
+  fecha_creacion  DateTime @default(now())
+}

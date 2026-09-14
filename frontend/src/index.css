@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: #0b0f19;
+    color: #f8fafc;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Fondo Estadio de Fútbol Exclusivo con gradiente nocturno */
+.stadium-bg {
+  background-image: linear-gradient(to bottom, rgba(5, 9, 18, 0.85), rgba(10, 15, 28, 0.92)), url('/stadium_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Cards Opacas Estilo Apple Pro */
+.apple-card-opaque {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 1px 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.apple-card-inner {
+  background: rgba(30, 41, 59, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.apple-glass-dark {
+  background: rgba(10, 15, 26, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Efectos Hover en Negro Profundo Potente */
+.hover-black-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-black-btn:hover {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.85);
+}
+.hover-black-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.hover-black-card {
+  transition: all 0.22s ease;
+}
+.hover-black-card:hover {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.9);
+}
+
+/* Barra de desplazamiento estética */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
