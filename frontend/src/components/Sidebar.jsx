@@ -94,7 +94,7 @@ export default function Sidebar({
 
       {/* Sidebar Lateral Opaco Apple Dark */}
       <aside
-        className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-72 apple-glass-dark flex flex-col justify-between transition-transform duration-300 shrink-0 ${
+        className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-72 apple-glass-dark flex flex-col justify-between overflow-y-auto transition-transform duration-300 shrink-0 ${
           menuMovilAbierto ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
