@@ -15,6 +15,7 @@ const emptyPredictions = {
 
 export default function BoletoView({
   usuarioActivo,
+  usuarios = [],
   onJugadaConfirmada,
   partidos = null,
   numeroJornada = 7,
@@ -28,21 +29,82 @@ export default function BoletoView({
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
   const userName = usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
 
-  // Cargar jugada previa del usuario si ya existe
+  // Cargar jugada previa del usuario sólo cuando cambia el ID de usuario activo o el número de jornada
   useEffect(() => {
-    if (usuarioActivo?.jugadaActual) {
-      setPredictions((prev) => ({
-        ...prev,
-        ...usuarioActivo.jugadaActual,
-      }));
+    // Si usuarioActivo tiene jugadaActual para esta misma jornada activa, cargarla
+    const coincideJornada =
+      !usuarioActivo?.jornadaActualNumero ||
+      Number(usuarioActivo.jornadaActualNumero) === Number(numeroJornada);
+
+    if (usuarioActivo?.jugadaActual && coincideJornada) {
+      try {
+        const parsed =
+          typeof usuarioActivo.jugadaActual === "string"
+            ? JSON.parse(usuarioActivo.jugadaActual)
+            : usuarioActivo.jugadaActual;
+        setPredictions({
+          partido1: { local: null, visitante: null, ...parsed.partido1 },
+          partido2: { local: null, visitante: null, ...parsed.partido2 },
+          partido3: { local: null, visitante: null, ...parsed.partido3 },
+          partido4: { local: null, visitante: null, ...parsed.partido4 },
+          partido5: { local: null, visitante: null, ...parsed.partido5 },
+          partido6: { local: null, visitante: null, ...parsed.partido6 },
+        });
+      } catch {
+        setPredictions(emptyPredictions);
+      }
+    } else {
+      setPredictions(emptyPredictions);
     }
-  }, [usuarioActivo]);
+    setFeedback(null);
+  }, [usuarioActivo?.id, numeroJornada]);
+
+  let totalSubmitted = 0;
+  Object.values(predictions).forEach((p) => {
+    if (p.local !== null) totalSubmitted++;
+    if (p.visitante !== null) totalSubmitted++;
+  });
+  const isComplete = totalSubmitted === 12;
+
+  // Comprobar en tiempo real si el boleto es 100% idéntico a uno ya registrado por otro miembro EXCLUSIVAMENTE EN ESTA MISMA JORNADA
+  const usuarioCoincidente = React.useMemo(() => {
+    if (!isComplete) return null;
+    const otros = (usuarios || []).filter(
+      (u) =>
+        u.id !== usuarioActivo?.id &&
+        u.haJugado &&
+        u.jugadaActual &&
+        (!u.jornadaActualNumero || Number(u.jornadaActualNumero) === Number(numeroJornada))
+    );
+
+    for (const otro of otros) {
+      const pOtro = otro.jugadaActual;
+      let identico = true;
+      for (let i = 1; i <= 6; i++) {
+        const k = `partido${i}`;
+        const mAct = predictions[k] || {};
+        const mOtro = pOtro[k] || {};
+        const l1 = String(mAct.local ?? "").trim();
+        const l2 = String(mOtro.local ?? "").trim();
+        const v1 = String(mAct.visitante ?? "").trim();
+        const v2 = String(mOtro.visitante ?? "").trim();
+        if (l1 !== l2 || v1 !== v2) {
+          identico = false;
+          break;
+        }
+      }
+      if (identico) {
+        return otro;
+      }
+    }
+    return null;
+  }, [predictions, isComplete, usuarios, usuarioActivo, numeroJornada]);
 
   // Si Jorge aún no ha introducido los partidos de la jornada
   if (!hayPartidos) {
     if (!isJorge) {
       return (
-        <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+        <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-8 sm:px-12">
           <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
             JORNADA {numeroJornada} · ESTADO
           </span>
@@ -58,7 +120,7 @@ export default function BoletoView({
 
     // Si es Jorge (Superadmin)
     return (
-      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-8 sm:px-12">
         <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           SUPERADMIN · JORNADA {numeroJornada}
         </span>
@@ -84,45 +146,56 @@ export default function BoletoView({
 
   // PARTIDOS DISPONIBLES: RENDERIZAR BOLETO
   const handleSelectGoal = (matchKey, side, value) => {
-    setPredictions((prev) => ({
-      ...prev,
-      [matchKey]: {
-        ...prev[matchKey],
-        [side]: prev[matchKey][side] === value ? null : value,
-      },
-    }));
+    setPredictions((prev) => {
+      const matchObj = prev[matchKey] || { local: null, visitante: null };
+      return {
+        ...prev,
+        [matchKey]: {
+          ...matchObj,
+          [side]: matchObj[side] === value ? null : value,
+        },
+      };
+    });
     setFeedback(null);
   };
 
   const handleClear = () => {
-    setPredictions(emptyPredictions);
+    setPredictions({
+      partido1: { local: null, visitante: null },
+      partido2: { local: null, visitante: null },
+      partido3: { local: null, visitante: null },
+      partido4: { local: null, visitante: null },
+      partido5: { local: null, visitante: null },
+      partido6: { local: null, visitante: null },
+    });
     setFeedback(null);
   };
 
   const handleAutoFill = () => {
     const randomPreds = {};
-    partidos.forEach((m) => {
-      randomPreds[m.key] = {
+    for (let i = 1; i <= 6; i++) {
+      randomPreds[`partido${i}`] = {
         local: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
         visitante: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
       };
-    });
+    }
     setPredictions(randomPreds);
     setFeedback(null);
   };
-
-  let totalSubmitted = 0;
-  Object.values(predictions).forEach((p) => {
-    if (p.local !== null) totalSubmitted++;
-    if (p.visitante !== null) totalSubmitted++;
-  });
-  const isComplete = totalSubmitted === 12;
 
   const handleConfirmTicket = async () => {
     if (!isComplete) {
       setFeedback({
         type: "error",
-        text: "Completa los 12 pronósticos de los 6 partidos antes de sellar el boleto.",
+        text: "Completa los 12 pronósticos de los 6 partidos antes de sellar tu apuesta.",
+      });
+      return;
+    }
+
+    if (usuarioCoincidente) {
+      setFeedback({
+        type: "error",
+        text: `Tu apuesta es 100% idéntica a la de ${usuarioCoincidente.nombre}. No se permiten dos apuestas iguales en la misma jornada; debes modificar al menos un resultado para poder guardar.`,
       });
       return;
     }
@@ -141,7 +214,7 @@ export default function BoletoView({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo sellar el boleto.");
+      if (!res.ok) throw new Error(data.error || "No se pudo sellar la apuesta.");
 
       confetti({
         particleCount: 100,
@@ -151,7 +224,7 @@ export default function BoletoView({
 
       setFeedback({
         type: "success",
-        text: `Boleto sellado y confirmado para la Jornada ${numeroJornada}.`,
+        text: `Apuesta sellada y confirmada para la Jornada ${numeroJornada}.`,
       });
 
       if (onJugadaConfirmada) {
@@ -183,13 +256,13 @@ export default function BoletoView({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      <section className="pb-8 mb-2 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <section className="pb-8 mb-2 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
-          JORNADA {numeroJornada} · BOLETO OFICIAL
+          JORNADA {numeroJornada} · APUESTA OFICIAL
         </span>
 
         <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
-          BOLETO DE {userName}
+          APUESTA DE {userName}
         </h2>
 
         <div className="mt-8 flex flex-wrap items-baseline justify-between gap-6">
@@ -207,7 +280,7 @@ export default function BoletoView({
               type="button"
               id="btn-auto-fill"
               onClick={handleAutoFill}
-              className="bg-white/30 border border-white/50 hover:bg-white/50 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider text-stone-700 transition-all duration-300 cursor-pointer"
+              className="bg-white/30 border border-white/50 hover-negro-brillante rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider text-stone-700 transition-all duration-300 cursor-pointer"
             >
               Rellenar al Azar
             </button>
@@ -236,7 +309,7 @@ export default function BoletoView({
           return (
             <div
               key={match.id || idx}
-              className="py-7 px-6 sm:px-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl transition-all"
+              className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl transition-all"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
@@ -264,8 +337,8 @@ export default function BoletoView({
                           onClick={() => handleSelectGoal(key, "local", g)}
                           className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             selected
-                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
-                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
+                              ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
                           }`}
                         >
                           {g}
@@ -291,8 +364,8 @@ export default function BoletoView({
                           onClick={() => handleSelectGoal(key, "visitante", g)}
                           className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             selected
-                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
-                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
+                              ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
                           }`}
                         >
                           {g}
@@ -307,14 +380,34 @@ export default function BoletoView({
         })}
       </section>
 
-      {/* Botón de Acción Principal Sólido Negro tipo Píldora */}
-      <section className="pt-10 max-w-md mx-auto text-center space-y-4">
+      {/* Botón de Acción Principal y Mensajes de Estado */}
+      <section className="pt-10 max-w-xl mx-auto text-center space-y-4">
+        {/* Banner prominente si la apuesta coincide al 100% con otro participante */}
+        {usuarioCoincidente && (
+          <div className="p-6 rounded-3xl text-center bg-red-950/90 border border-red-500/50 shadow-[0_12px_36px_rgba(239,68,68,0.25)] text-white backdrop-blur-xl animate-in fade-in space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 text-red-300 font-bold uppercase tracking-wider text-xs border border-red-500/30">
+              <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>Apuesta Idéntica No Permitida</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-white">
+              ¡Combinación idéntica a la de {usuarioCoincidente.nombre}!
+            </h3>
+            <p className="text-sm text-stone-200 leading-relaxed max-w-md mx-auto">
+              En las normas de la peña no se permiten dos apuestas iguales en la misma jornada.
+              <br />
+              <strong className="text-amber-300 font-semibold">Estás obligado a modificar al menos un resultado</strong> para que no sea idéntico y poder sellar tu apuesta.
+            </p>
+          </div>
+        )}
+
         {feedback && (
           <div
-            className={`p-4 rounded-full text-xs font-semibold tracking-wide uppercase transition-all backdrop-blur-xl ${
+            className={`p-4 rounded-2xl text-xs sm:text-sm font-semibold tracking-wide transition-all backdrop-blur-xl ${
               feedback.type === "success"
-                ? "bg-white/50 border border-white/70 text-stone-800"
-                : "bg-white/40 border border-white/50 text-stone-600"
+                ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-900"
+                : "bg-red-500/20 border border-red-500/50 text-red-900"
             }`}
           >
             <span>{feedback.text}</span>
@@ -324,19 +417,27 @@ export default function BoletoView({
         <button
           type="button"
           id="btn-confirmar-boleto"
-          disabled={submitting}
+          disabled={submitting || !isComplete || Boolean(usuarioCoincidente)}
           onClick={handleConfirmTicket}
-          className={`w-full py-4 px-10 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
-            isComplete
-              ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 cursor-pointer"
+          className={`w-full py-4 px-8 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
+            usuarioCoincidente
+              ? "bg-red-950/40 border border-red-500/30 text-red-300 cursor-not-allowed"
+              : isComplete
+              ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 hover-negro-brillante cursor-pointer"
               : "bg-white/30 border border-white/50 text-stone-400 cursor-not-allowed"
           }`}
         >
-          {submitting ? "Sellando Boleto..." : "Confirmar y Sellar Boleto Oficial"}
+          {submitting
+            ? "Sellando Apuesta..."
+            : usuarioCoincidente
+            ? `Apuesta idéntica a ${usuarioCoincidente.nombre} (Debes cambiar un resultado)`
+            : "Confirmar y Sellar Apuesta Oficial"}
         </button>
 
         <p className="text-xs text-stone-400 uppercase tracking-widest">
-          {isComplete
+          {usuarioCoincidente
+            ? "Modifica cualquier pronóstico para poder sellar"
+            : isComplete
             ? "12 de 12 pronósticos listos para el escrutinio"
             : `Completa los ${12 - totalSubmitted} goles restantes para sellar`}
         </p>

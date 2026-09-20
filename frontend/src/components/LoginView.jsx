@@ -57,8 +57,8 @@ export default function LoginView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-[#f8f5f2] to-[#e8e4de] flex items-center justify-center p-6 sm:p-12 antialiased text-[#4a4641] font-sans">
-      <div className="w-full max-w-lg bg-white/40 backdrop-blur-2xl rounded-3xl p-8 sm:p-12 border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+    <div className="min-h-screen flex items-center justify-center p-6 sm:p-12 antialiased text-[#4a4641] font-sans">
+      <div className="w-full max-w-lg bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-12">
         <div className="mb-10">
           <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-3">
             Peña Oficial
@@ -86,7 +86,7 @@ export default function LoginView({ onLoginSuccess }) {
                 setNombre(e.target.value);
                 setError(null);
               }}
-              className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
+              className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-stone-800 transition-all"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function LoginView({ onLoginSuccess }) {
                   setPassword(e.target.value);
                   setError(null);
                 }}
-                className="w-full px-4 pr-20 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
+                className="w-full px-4 pr-20 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-stone-800 transition-all"
               />
               <button
                 type="button"

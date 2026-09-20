@@ -59,7 +59,7 @@ export default function ResultadosView({
   // CASO 1: NO HAY PARTIDOS CONFIGURADOS EN LA JORNADA
   if (!hayPartidos) {
     return (
-      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-8 sm:px-12">
         <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           JORNADA {numeroJornada} · ESTADO
         </span>
@@ -78,7 +78,7 @@ export default function ResultadosView({
   // CASO 2: NO ES JORGE Y AÚN NO SE HAN PUBLICADO RESULTADOS
   if (!esJorge && !disponible) {
     return (
-      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-8 sm:px-12">
         <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           JORNADA {numeroJornada} · ESCRUTINIO
         </span>
@@ -96,7 +96,7 @@ export default function ResultadosView({
   if (!esJorge && disponible) {
     return (
       <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-        <div className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+        <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
           <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
             JORNADA {numeroJornada} · OFICIAL
           </span>
@@ -112,7 +112,7 @@ export default function ResultadosView({
           {partidos.map((partido, idx) => {
             const res = resultados[partido.key] || { local: "-", visitante: "-" };
             return (
-              <div key={partido.id || idx} className="py-7 px-6 sm:px-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl flex items-center justify-between gap-6">
+              <div key={partido.id || idx} className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl flex items-center justify-between gap-6">
                 <div>
                   <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase block mb-1">
                     PARTIDO {String(idx + 1).padStart(2, "0")}
@@ -232,7 +232,7 @@ export default function ResultadosView({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      <section className="pb-8 mb-2 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <section className="pb-8 mb-2 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           SUPERADMIN · JORNADA {numeroJornada}
         </span>
@@ -288,7 +288,7 @@ export default function ResultadosView({
           return (
             <div
               key={partido.id || idx}
-              className="py-7 px-6 sm:px-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl transition-all"
+              className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl transition-all"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
@@ -315,8 +315,8 @@ export default function ResultadosView({
                           onClick={() => seleccionarGol(partido.key, "local", gol)}
                           className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             sel
-                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
-                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
+                              ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
                           }`}
                         >
                           {gol}
@@ -341,8 +341,8 @@ export default function ResultadosView({
                           onClick={() => seleccionarGol(partido.key, "visitante", gol)}
                           className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             sel
-                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
-                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
+                              ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
                           }`}
                         >
                           {gol}

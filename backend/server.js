@@ -132,6 +132,8 @@ app.get("/api/usuarios", async (_req, res) => {
         ...u,
         haJugado: !!jugada,
         jugadaActual: jugada ? JSON.parse(jugada.pronosticos || "{}") : null,
+        jornadaActualId: jornadaActiva?.id || null,
+        jornadaActualNumero: jornadaActiva?.numero || null,
       };
     });
 
@@ -366,6 +368,52 @@ app.post("/api/jugadas", async (req, res) => {
     // Guardar o actualizar la jugada del usuario para esta jornada
     const serializado = JSON.stringify(datosPronosticos);
 
+    // Validar que ningún otro participante haya sellado una apuesta idéntica en esta jornada
+    const otrasJugadas = await prisma.jugada.findMany({
+      where: {
+        jornadaId: jornada.id,
+        usuarioId: { not: usuario.id },
+      },
+      include: { usuario: true },
+    });
+
+    const sonPronosticosIdenticos = (p1, p2) => {
+      if (!p1 || !p2) return false;
+      const parse = (val) => {
+        if (typeof val === "string") {
+          try { return JSON.parse(val); } catch { return {}; }
+        }
+        return val || {};
+      };
+      const o1 = parse(p1);
+      const o2 = parse(p2);
+
+      for (let i = 1; i <= 6; i++) {
+        const k = `partido${i}`;
+        const m1 = o1[k] || {};
+        const m2 = o2[k] || {};
+        const l1 = String(m1.local ?? "").trim();
+        const l2 = String(m2.local ?? "").trim();
+        const v1 = String(m1.visitante ?? "").trim();
+        const v2 = String(m2.visitante ?? "").trim();
+        if (l1 !== l2 || v1 !== v2) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const coincidente = otrasJugadas.find((oj) =>
+      sonPronosticosIdenticos(datosPronosticos, oj.pronosticos || oj.numeros)
+    );
+
+    if (coincidente) {
+      const otroNombre = coincidente.usuario?.nombre || "otro participante";
+      return res.status(400).json({
+        error: `Tu apuesta es 100% idéntica a la que ya selló ${otroNombre} para la Jornada ${jornada.numero}. En la peña no se permiten dos apuestas iguales en la misma jornada; debes modificar al menos un resultado para poder guardar.`,
+      });
+    }
+
     const jugadaExistente = await prisma.jugada.findFirst({
       where: {
         usuarioId: usuario.id,
@@ -395,8 +443,25 @@ app.post("/api/jugadas", async (req, res) => {
       });
     }
 
+    // Crear notificación para Jorge (Superadmin)
+    try {
+      await prisma.notificacion.create({
+        data: {
+          tipo: "apuesta",
+          usuarioId: usuario.id,
+          usuarioNombre: usuario.nombre,
+          jornadaNumero: jornada.numero,
+          pronosticos: serializado,
+          resumen: `Apuesta Jornada ${jornada.numero} registrada por ${usuario.nombre}`,
+          leida: false,
+        },
+      });
+    } catch (notifErr) {
+      console.error("Error al registrar notificación para superadmin:", notifErr);
+    }
+
     res.status(201).json({
-      message: `¡Boleto de ${usuario.nombre} guardado correctamente!`,
+      message: `¡Apuesta de ${usuario.nombre} guardada correctamente!`,
       jugada: {
         ...jugada,
         datos: datosPronosticos,
@@ -405,6 +470,69 @@ app.post("/api/jugadas", async (req, res) => {
   } catch (error) {
     console.error("Error al guardar jugada:", error);
     res.status(500).json({ error: "No se pudo guardar la jugada." });
+  }
+});
+
+// --- ENDPOINTS NOTIFICACIONES (SUPERADMIN JORGE) ---
+app.get("/api/notificaciones", async (_req, res) => {
+  try {
+    const notificaciones = await prisma.notificacion.findMany({
+      orderBy: { fecha_creacion: "desc" },
+      take: 50,
+      include: {
+        usuario: true,
+      },
+    });
+
+    const totalNoLeidas = notificaciones.filter((n) => !n.leida).length;
+
+    const notificacionesFormateadas = notificaciones.map((n) => {
+      let pronosticosParsed = {};
+      try {
+        pronosticosParsed = JSON.parse(n.pronosticos || "{}");
+      } catch {
+        pronosticosParsed = {};
+      }
+      return {
+        ...n,
+        pronosticos: pronosticosParsed,
+      };
+    });
+
+    res.json({
+      notificaciones: notificacionesFormateadas,
+      totalNoLeidas,
+    });
+  } catch (error) {
+    console.error("Error al obtener notificaciones:", error);
+    res.status(500).json({ error: "No se pudieron obtener las notificaciones." });
+  }
+});
+
+app.put("/api/notificaciones/:id/leida", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notificacion = await prisma.notificacion.update({
+      where: { id: Number(id) },
+      data: { leida: true },
+    });
+    res.json(notificacion);
+  } catch (error) {
+    console.error("Error al marcar notificación como leída:", error);
+    res.status(500).json({ error: "No se pudo actualizar la notificación." });
+  }
+});
+
+app.post("/api/notificaciones/marcar-todas-leidas", async (_req, res) => {
+  try {
+    await prisma.notificacion.updateMany({
+      where: { leida: false },
+      data: { leida: true },
+    });
+    res.json({ message: "Todas las notificaciones marcadas como leídas." });
+  } catch (error) {
+    console.error("Error al marcar todas como leídas:", error);
+    res.status(500).json({ error: "No se pudieron marcar como leídas." });
   }
 });
 
@@ -449,6 +577,7 @@ app.get("/api/jornada/partidos", async (_req, res) => {
       configurado,
       partidos,
       imagenBoleto: jornada.imagenBoleto,
+      apuestasAceptadas: Boolean(jornada.apuestasAceptadas),
     });
   } catch (error) {
     console.error("Error al obtener partidos:", error);
@@ -477,6 +606,54 @@ app.delete("/api/jornada/partidos", async (_req, res) => {
   }
 });
 
+// Aceptar todas las apuestas de la jornada (Superadmin)
+app.post("/api/jornada/aceptar-apuestas", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) return res.status(404).json({ error: "No hay jornada activa." });
+
+    await prisma.jornada.update({
+      where: { id: jornada.id },
+      data: { apuestasAceptadas: true },
+    });
+
+    // Marcar notificaciones de la jornada como revisadas
+    await prisma.notificacion.updateMany({
+      where: { jornadaNumero: jornada.numero },
+      data: { leida: true },
+    });
+
+    res.json({
+      message: "Todas las apuestas han sido aceptadas. Los resultados y pronósticos ya son visibles para toda la peña.",
+      apuestasAceptadas: true,
+    });
+  } catch (error) {
+    console.error("Error al aceptar apuestas:", error);
+    res.status(500).json({ error: "No se pudieron aceptar las apuestas." });
+  }
+});
+
+// Reabrir apuestas de la jornada (Superadmin)
+app.post("/api/jornada/reabrir-apuestas", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) return res.status(404).json({ error: "No hay jornada activa." });
+
+    await prisma.jornada.update({
+      where: { id: jornada.id },
+      data: { apuestasAceptadas: false },
+    });
+
+    res.json({
+      message: "Las apuestas vuelven a estar pendientes de validación.",
+      apuestasAceptadas: false,
+    });
+  } catch (error) {
+    console.error("Error al reabrir apuestas:", error);
+    res.status(500).json({ error: "No se pudieron reabrir las apuestas." });
+  }
+});
+
 // Actualizar número de jornada activa (Superadmin)
 app.post("/api/jornada/numero", async (req, res) => {
   try {
@@ -486,21 +663,34 @@ app.post("/api/jornada/numero", async (req, res) => {
       return res.status(400).json({ error: "El número de jornada debe ser un entero positivo." });
     }
 
-    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
-    if (!jornada) {
-      jornada = await prisma.jornada.create({
-        data: { numero: num, activa: true, partidos: null, resultados: null },
+    // Buscar si ya existe una jornada con ese número
+    let jornadaDestino = await prisma.jornada.findFirst({ where: { numero: num } });
+
+    // Desactivar cualquier otra jornada activa previa
+    await prisma.jornada.updateMany({
+      where: { activa: true, numero: { not: num } },
+      data: { activa: false },
+    });
+
+    if (jornadaDestino) {
+      jornadaDestino = await prisma.jornada.update({
+        where: { id: jornadaDestino.id },
+        data: { activa: true },
       });
     } else {
-      jornada = await prisma.jornada.update({
-        where: { id: jornada.id },
-        data: { numero: num },
+      jornadaDestino = await prisma.jornada.create({
+        data: {
+          numero: num,
+          activa: true,
+          partidos: null,
+          resultados: null,
+        },
       });
     }
 
     res.json({
       message: `Jornada activa actualizada a la Jornada ${num}.`,
-      jornada: jornada.numero,
+      jornada: jornadaDestino.numero,
     });
   } catch (error) {
     console.error("Error al actualizar número de jornada:", error);
@@ -516,13 +706,6 @@ app.post("/api/jornada/partidos", async (req, res) => {
       return res.status(400).json({ error: "Se deben definir exactamente 6 partidos para el Quinigol." });
     }
 
-    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
-    if (!jornada) {
-      jornada = await prisma.jornada.create({
-        data: { numero: 7, activa: true },
-      });
-    }
-
     const partidosFormateados = partidos.map((p, idx) => ({
       id: idx + 1,
       key: `partido${idx + 1}`,
@@ -533,31 +716,54 @@ app.post("/api/jornada/partidos", async (req, res) => {
       awayCode: (p.awayCode || (p.away ? p.away.substring(0, 3).toUpperCase() : `V0${idx + 1}`)).trim(),
     }));
 
-    const dataUpdate = {
-      partidos: JSON.stringify(partidosFormateados),
-    };
-
-    if (imagenBoleto !== undefined) {
-      dataUpdate.imagenBoleto = imagenBoleto;
-    }
-
+    let num = null;
     if (numeroJornada) {
-      const num = parseInt(numeroJornada, 10);
-      if (!isNaN(num) && num >= 1) {
-        dataUpdate.numero = num;
+      const parsed = parseInt(numeroJornada, 10);
+      if (!isNaN(parsed) && parsed >= 1) {
+        num = parsed;
       }
     }
 
-    const jornadaActualizada = await prisma.jornada.update({
-      where: { id: jornada.id },
-      data: dataUpdate,
+    if (!num) {
+      const jornadaActual = await prisma.jornada.findFirst({ where: { activa: true } });
+      num = jornadaActual ? jornadaActual.numero : 1;
+    }
+
+    // Buscar si ya existe la jornada con este número
+    let jornadaDestino = await prisma.jornada.findFirst({ where: { numero: num } });
+
+    // Desactivar cualquier otra jornada activa previa
+    await prisma.jornada.updateMany({
+      where: { activa: true, numero: { not: num } },
+      data: { activa: false },
     });
+
+    const dataToSave = {
+      activa: true,
+      partidos: JSON.stringify(partidosFormateados),
+      ...(imagenBoleto !== undefined ? { imagenBoleto } : {}),
+    };
+
+    if (jornadaDestino) {
+      jornadaDestino = await prisma.jornada.update({
+        where: { id: jornadaDestino.id },
+        data: dataToSave,
+      });
+    } else {
+      jornadaDestino = await prisma.jornada.create({
+        data: {
+          numero: num,
+          resultados: null,
+          ...dataToSave,
+        },
+      });
+    }
 
     res.json({
       message: "¡Partidos de la jornada actualizados y aplicados con éxito!",
-      jornada: jornadaActualizada.numero,
+      jornada: jornadaDestino.numero,
       partidos: partidosFormateados,
-      imagenBoleto: jornadaActualizada.imagenBoleto,
+      imagenBoleto: jornadaDestino.imagenBoleto,
     });
   } catch (error) {
     console.error("Error al actualizar partidos:", error);
@@ -591,11 +797,37 @@ app.get("/api/resultados", async (_req, res) => {
       }
     }
 
+    let jugadasDeTodos = [];
+    if (jornada && jornada.apuestasAceptadas) {
+      const jugadas = await prisma.jugada.findMany({
+        where: { jornadaId: jornada.id },
+        include: { usuario: true },
+        orderBy: { fecha_creacion: "asc" },
+      });
+      jugadasDeTodos = jugadas.map((j) => {
+        let datos = {};
+        try {
+          datos = JSON.parse(j.pronosticos || j.numeros || "{}");
+        } catch {
+          datos = {};
+        }
+        return {
+          id: j.id,
+          usuarioId: j.usuarioId,
+          usuarioNombre: j.usuario?.nombre || "Miembro",
+          pronosticos: datos,
+          puntosObtenidos: j.puntosObtenidos,
+        };
+      });
+    }
+
     res.json({
       jornada: jornada ? jornada.numero : 1,
       activa: jornada ? jornada.activa : true,
       disponible,
+      apuestasAceptadas: Boolean(jornada && jornada.apuestasAceptadas),
       resultados,
+      jugadasDeTodos,
     });
   } catch (error) {
     console.error("Error al obtener resultados:", error);

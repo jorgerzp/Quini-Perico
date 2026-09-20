@@ -5,7 +5,7 @@
     margin: 0;
     min-height: 100vh;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #f5f0ea 0%, #f8f5f2 45%, #e8e4de 100%);
+    background: #0c0a09;
     color: #4a4641;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -37,4 +37,38 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(74, 70, 65, 0.32);
+}
+
+/* Efecto Hover Negro Brillante con reflejo superior e iluminación */
+.hover-negro-brillante {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-negro-brillante:hover {
+  background: linear-gradient(180deg, #262626 0%, #0a0a0a 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+.hover-negro-brillante:hover span,
+.hover-negro-brillante:hover p {
+  color: #ffffff !important;
+}
+
+/* Pulso llamativo para el punto rojo de notificación de Jorge */
+@keyframes notifPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+  }
+}
+
+.badge-notif-pulse {
+  animation: notifPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

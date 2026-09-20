@@ -28,6 +28,51 @@ export default function App() {
   const [partidos, setPartidos] = useState([]);
   const [numeroJornada, setNumeroJornada] = useState(7);
   const [cargando, setCargando] = useState(true);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+
+  // Cargar Notificaciones (Superadmin Jorge)
+  const cargarNotificaciones = useCallback(async () => {
+    const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
+    if (!esJorge) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/notificaciones`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotificaciones(data.notificaciones || []);
+        setNotificacionesNoLeidas(data.totalNoLeidas || 0);
+      }
+    } catch (err) {
+      console.error("Error al cargar notificaciones:", err);
+    }
+  }, [usuarioActivo]);
+
+  const marcarNotificacionLeida = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/notificaciones/${id}/leida`, {
+        method: "PUT",
+      });
+      if (res.ok) {
+        cargarNotificaciones();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const marcarTodasNotificacionesLeidas = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/notificaciones/marcar-todas-leidas`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        cargarNotificaciones();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Cargar usuarios
   const cargarUsuarios = useCallback(async () => {
@@ -41,6 +86,15 @@ export default function App() {
         setUsuarioActivo((actual) => {
           if (actual) {
             const refrescado = data.find((u) => u.id === actual.id || u.nombre === actual.nombre);
+            if (
+              refrescado &&
+              refrescado.id === actual.id &&
+              refrescado.puntos === actual.puntos &&
+              refrescado.aciertos === actual.aciertos &&
+              refrescado.haJugado === actual.haJugado
+            ) {
+              return actual;
+            }
             return refrescado || actual;
           }
           if (usuarioLogueado) {
@@ -101,13 +155,19 @@ export default function App() {
   }, []);
 
   const recargarTodo = useCallback(async () => {
-    await Promise.all([cargarUsuarios(), cargarBote(), cargarClasificacion(), cargarPartidos()]);
+    await Promise.all([
+      cargarUsuarios(),
+      cargarBote(),
+      cargarClasificacion(),
+      cargarPartidos(),
+      cargarNotificaciones(),
+    ]);
     setCargando(false);
-  }, [cargarUsuarios, cargarBote, cargarClasificacion, cargarPartidos]);
+  }, [cargarUsuarios, cargarBote, cargarClasificacion, cargarPartidos, cargarNotificaciones]);
 
   useEffect(() => {
     recargarTodo();
-  }, [recargarTodo]);
+  }, []); // Cargar sólo al montar la aplicación
 
   // Sincronización en vivo: al cambiar a boleto o resultados, cargar partidos de inmediato
   useEffect(() => {
@@ -116,13 +176,14 @@ export default function App() {
     }
   }, [seccionActiva, cargarPartidos]);
 
-  // Polling cada 10s para que a los demás usuarios les salgan en vivo los partidos que fija Jorge
+  // Polling cada 6s para partidos y notificaciones
   useEffect(() => {
     const interval = setInterval(() => {
       cargarPartidos();
-    }, 10000);
+      cargarNotificaciones();
+    }, 6000);
     return () => clearInterval(interval);
-  }, [cargarPartidos]);
+  }, [cargarPartidos, cargarNotificaciones]);
 
   // Manejo de Login y Logout
   const handleLoginSuccess = (usuario) => {
@@ -174,44 +235,61 @@ export default function App() {
     }
   };
 
-  // Si no está autenticado, mostrar LoginView
-  if (!usuarioLogueado) {
-    return (
-      <LoginView
-        usuarios={usuarios}
-        onLoginSuccess={handleLoginSuccess}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-[#f8f5f2] to-[#e8e4de] text-[#4a4641] pt-32 antialiased selection:bg-[#cbb29b] selection:text-white font-sans">
-      <Sidebar
-        seccionActiva={seccionActiva}
-        setSeccionActiva={setSeccionActiva}
-        usuarioActivo={usuarioActivo}
-        boteTotal={bote?.acumulado || 0}
-        numeroJornada={numeroJornada}
-        onLogout={handleLogout}
-      />
+    <div className="relative min-h-screen text-[#4a4641] font-sans antialiased selection:bg-stone-800 selection:text-white">
+      {/* Video Fijo de Fondo con Máxima Calidad */}
+      <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none -z-10 bg-stone-900">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover object-center"
+          src="/Hand_spins_soccer_ball_20260920183927.mp4"
+        />
+        {/* Velo translúcido tenue para preservar máxima nitidez y garantizar contraste óptimo */}
+        <div className="absolute inset-0 bg-stone-900/20 pointer-events-none" />
+      </div>
 
-      <main className="relative z-10 px-4 sm:px-8 lg:px-10 pb-20 overflow-y-auto max-w-6xl w-full mx-auto">
-        <div className="sr-only">
-          <span>{usuarioActivo?.nombre || "Miembro"}</span>
-          <button type="button" id="btn-top-logout" onClick={handleLogout}>
-            Cerrar Sesión
-          </button>
-        </div>
+      {!usuarioLogueado ? (
+        <LoginView
+          usuarios={usuarios}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      ) : (
+        <div className="pt-32">
+          <Sidebar
+            seccionActiva={seccionActiva}
+            setSeccionActiva={setSeccionActiva}
+            usuarioActivo={usuarioActivo}
+            boteTotal={bote?.acumulado || 0}
+            numeroJornada={numeroJornada}
+            notificacionesNoLeidas={notificacionesNoLeidas}
+            notificaciones={notificaciones}
+            onMarcarTodasLeidas={marcarTodasNotificacionesLeidas}
+            onLogout={handleLogout}
+          />
+
+          <main className="relative z-10 px-4 sm:px-8 lg:px-10 pb-20 overflow-y-auto max-w-6xl w-full mx-auto">
+            <div className="sr-only">
+              <span>{usuarioActivo?.nombre || "Miembro"}</span>
+              <button type="button" id="btn-top-logout" onClick={handleLogout}>
+                Cerrar Sesión
+              </button>
+            </div>
 
         {seccionActiva === "boleto" && (
           <BoletoView
             usuarioActivo={usuarioActivo}
+            usuarios={usuarios}
             partidos={partidos}
             numeroJornada={numeroJornada}
             onIrAdmin={() => setSeccionActiva("admin")}
             onJugadaConfirmada={() => {
               cargarUsuarios();
               cargarClasificacion();
+              cargarNotificaciones();
             }}
           />
         )}
@@ -255,10 +333,20 @@ export default function App() {
             usuarioActivo={usuarioActivo}
             partidosActuales={partidos}
             numeroJornada={numeroJornada}
-            onJornadaActualizada={(n) => setNumeroJornada(n)}
+            notificaciones={notificaciones}
+            notificacionesNoLeidas={notificacionesNoLeidas}
+            onMarcarNotificacionLeida={marcarNotificacionLeida}
+            onMarcarTodasNotificacionesLeidas={marcarTodasNotificacionesLeidas}
+            onActualizarNotificaciones={cargarNotificaciones}
+            onJornadaActualizada={(n) => {
+              setNumeroJornada(n);
+              cargarUsuarios();
+              cargarPartidos();
+            }}
             onPartidosActualizados={(nuevos, num) => {
               setPartidos(nuevos);
               if (num) setNumeroJornada(num);
+              cargarUsuarios();
             }}
             onBoteActualizado={cargarBote}
             onIrResultados={() => setSeccionActiva("resultados")}
@@ -266,6 +354,8 @@ export default function App() {
           />
         )}
       </main>
+        </div>
+      )}
     </div>
   );
 }

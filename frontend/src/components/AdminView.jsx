@@ -38,6 +38,11 @@ export default function AdminView({
   onPartidosActualizados,
   numeroJornada = 7,
   onJornadaActualizada,
+  notificaciones = [],
+  notificacionesNoLeidas = 0,
+  onMarcarNotificacionLeida,
+  onMarcarTodasNotificacionesLeidas,
+  onActualizarNotificaciones,
 }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
 
@@ -85,13 +90,16 @@ export default function AdminView({
   const [guardandoBote, setGuardandoBote] = useState(false);
   const [mensajeBote, setMensajeBote] = useState(null);
 
+  // Estado Notificaciones
+  const [notifSeleccionadaId, setNotifSeleccionadaId] = useState(null);
+
   const fileInputRef = useRef(null);
 
   // Si no es Jorge, pantalla de denegación
   if (!esJorge) {
     return (
       <div className="max-w-xl mx-auto py-24 px-6 text-center">
-        <div className="bg-white/40 backdrop-blur-2xl rounded-3xl p-12 border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-12">
           <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
             Seguridad
           </p>
@@ -366,7 +374,7 @@ export default function AdminView({
   // Ejecutar OCR en la foto seleccionada
   const ejecutarOcr = async () => {
     if (!imagenPreview) {
-      setMensajePartidos({ tipo: "error", texto: "Primero selecciona o sube una foto del boleto." });
+      setMensajePartidos({ tipo: "error", texto: "Primero selecciona o sube una foto de la quiniela." });
       return;
     }
 
@@ -523,7 +531,7 @@ export default function AdminView({
   const reiniciarPartidos = async () => {
     if (
       !window.confirm(
-        "¿Estás seguro de que deseas eliminar los partidos de esta jornada? El boleto volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
+        "¿Estás seguro de que deseas eliminar los partidos de esta jornada? La sección de apuesta volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
       )
     ) {
       return;
@@ -592,7 +600,7 @@ export default function AdminView({
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20 text-[#4a4641]">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <div>
           <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-3">
             Superadmin · Jorge
@@ -615,7 +623,7 @@ export default function AdminView({
       </div>
 
       {/* CONTROL OFICIAL DE NÚMERO DE JORNADA */}
-      <div className="space-y-6 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <div className="space-y-6 pb-10 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
@@ -669,8 +677,184 @@ export default function AdminView({
         )}
       </div>
 
+      {/* SECCIÓN NOTIFICACIONES DE APUESTAS RECIBIDAS EN VIVO */}
+      <div id="seccion-notificaciones-admin" className="space-y-6 pb-10 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
+                Notificaciones en Vivo
+              </span>
+              {notificacionesNoLeidas > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold bg-red-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.7)] badge-notif-pulse">
+                  {notificacionesNoLeidas} nuevas
+                </span>
+              )}
+            </div>
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-stone-800">
+              Apuestas Recibidas
+            </h3>
+            <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
+              Registro inmediato de las apuestas que hace cada miembro al sellar su apuesta.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {notificacionesNoLeidas > 0 && onMarcarTodasNotificacionesLeidas && (
+              <button
+                type="button"
+                id="btn-marcar-todas-leidas-admin"
+                onClick={onMarcarTodasNotificacionesLeidas}
+                className="px-6 py-3 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider hover-negro-brillante shadow-[0_6px_20px_rgba(40,36,32,0.15)] transition-all cursor-pointer"
+              >
+                Marcar todas como revisadas
+              </button>
+            )}
+
+            {onActualizarNotificaciones && (
+              <button
+                type="button"
+                onClick={onActualizarNotificaciones}
+                className="px-5 py-3 rounded-full bg-white/30 border border-white/50 text-stone-700 text-xs font-semibold uppercase tracking-wider hover-negro-brillante transition-all cursor-pointer"
+              >
+                Refrescar
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Lista de Notificaciones con desglose de la apuesta que hizo cada uno */}
+        <div className="space-y-4 pt-2">
+          {notificaciones.length === 0 ? (
+            <div className="py-12 px-6 text-center bg-white/20 rounded-2xl border border-white/40">
+              <p className="text-sm font-medium text-stone-400">
+                Aún no hay apuestas registradas por los miembros.
+              </p>
+              <p className="text-xs text-stone-400/80 mt-1">
+                En cuanto cualquiera de los 8 rellene su apuesta y guarde, su jugada aparecerá aquí al instante para Jorge.
+              </p>
+            </div>
+          ) : (
+            notificaciones.map((notif) => {
+              const estaExpandida = notifSeleccionadaId === notif.id;
+              const pronosticosObj = notif.pronosticos || {};
+              const fechaStr = new Date(notif.fecha_creacion).toLocaleString("es-ES", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              return (
+                <div
+                  key={notif.id}
+                  className={`rounded-3xl border transition-all duration-300 p-6 ${
+                    !notif.leida
+                      ? "bg-white/85 border-red-300 shadow-[0_6px_25px_rgba(239,68,68,0.12)]"
+                      : "bg-white/35 border-white/60 hover:bg-white/50"
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                          !notif.leida ? "bg-red-500 badge-notif-pulse" : "bg-stone-300"
+                        }`}
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-lg font-extrabold text-stone-900 tracking-tight">
+                            {notif.usuarioNombre}
+                          </h4>
+                          <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/70 text-stone-600 font-bold border border-stone-200">
+                            Jornada {notif.jornadaNumero}
+                          </span>
+                          {!notif.leida && (
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 uppercase tracking-wide">
+                              Nueva
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-stone-500 font-medium mt-0.5">
+                          {notif.resumen || "Apuesta sellada"} · <span className="font-mono">{fechaStr}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {!notif.leida && onMarcarNotificacionLeida && (
+                        <button
+                          type="button"
+                          onClick={() => onMarcarNotificacionLeida(notif.id)}
+                          className="px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/60 border border-white/70 hover:bg-white transition-all cursor-pointer hover-negro-brillante"
+                        >
+                          Marcar revisada
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setNotifSeleccionadaId(estaExpandida ? null : notif.id)}
+                        className="px-5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider text-stone-800 bg-white/50 border border-white/60 hover-negro-brillante transition-all cursor-pointer"
+                      >
+                        {estaExpandida ? "Ocultar Apuesta" : "Ver Apuesta Detallada"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Detalle visual de los 6 Partidos de la Apuesta */}
+                  {estaExpandida && (
+                    <div className="mt-6 pt-5 border-t border-stone-200/60 animate-in fade-in duration-200">
+                      <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">
+                        Apuesta completa realizada por {notif.usuarioNombre}
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        {[1, 2, 3, 4, 5, 6].map((num) => {
+                          const key = `partido${num}`;
+                          const pred = pronosticosObj[key] || { local: null, visitante: null };
+                          const partidoOficial = partidosActuales?.[num - 1] || {};
+                          const homeName = partidoOficial.home || `Local P${num}`;
+                          const awayName = partidoOficial.away || `Visitante P${num}`;
+
+                          return (
+                            <div
+                              key={key}
+                              className="p-3.5 rounded-2xl bg-white/70 border border-white/80 shadow-xs flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0 pr-1">
+                                <span className="text-[10px] font-mono font-bold text-stone-400 block uppercase">
+                                  Partido 0{num}
+                                </span>
+                                <p className="text-xs font-bold text-stone-800 truncate mt-0.5">
+                                  {homeName} <span className="text-stone-400 font-normal">vs</span> {awayName}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0 font-mono font-extrabold text-sm">
+                                <span className="w-7 h-7 rounded-xl bg-stone-800 text-white flex items-center justify-center shadow-xs">
+                                  {pred.local ?? "-"}
+                                </span>
+                                <span className="text-stone-400 font-bold">:</span>
+                                <span className="w-7 h-7 rounded-xl bg-stone-800 text-white flex items-center justify-center shadow-xs">
+                                  {pred.visitante ?? "-"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       {/* SECCIÓN 1: ESCÁNER OCR DE FOTO DE LA JORNADA */}
-      <div className="space-y-8 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <div className="space-y-8 pb-10 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <div>
             <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
               Reconocimiento Automático
@@ -679,7 +863,7 @@ export default function AdminView({
               Escáner OCR · Jornada {jornadaInput}
             </h3>
             <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
-            Sube la captura oficial del boleto y el OCR extraerá los 6 enfrentamientos automáticamente.
+            Sube la captura oficial de la quiniela y el OCR extraerá los 6 enfrentamientos automáticamente.
           </p>
         </div>
 
@@ -688,7 +872,7 @@ export default function AdminView({
           {/* Uploader */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border border-dashed border-white/60 hover:border-[#cbb29b] rounded-3xl p-10 text-center cursor-pointer transition-all bg-white/30 hover:bg-white/50 flex flex-col items-center justify-center min-h-[220px]"
+            className="border border-dashed border-white/60 hover:border-stone-800 rounded-3xl p-10 text-center cursor-pointer transition-all bg-white/30 hover:bg-white/50 flex flex-col items-center justify-center min-h-[220px]"
           >
             <input
               ref={fileInputRef}
@@ -699,7 +883,7 @@ export default function AdminView({
             />
 
             <p className="text-base font-semibold text-stone-800 mb-1">
-              Subir foto del boleto
+              Subir foto de la quiniela
             </p>
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">
               Arrastra aquí o haz clic (JPG, PNG)
@@ -801,7 +985,7 @@ export default function AdminView({
                         value={partido.home}
                         onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
                         placeholder="Local"
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-[#cbb29b]"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-stone-800"
                       />
                     </div>
 
@@ -815,7 +999,7 @@ export default function AdminView({
                         value={partido.away}
                         onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
                         placeholder="Visitante"
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-[#cbb29b]"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-stone-800"
                       />
                     </div>
                   </div>
@@ -867,7 +1051,7 @@ export default function AdminView({
         </div>
       </div>
 
-      <div className="space-y-8 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+      <div className="space-y-8 pb-10 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
@@ -916,7 +1100,7 @@ export default function AdminView({
                 placeholder="0.00"
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-mono font-bold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
+                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-mono font-bold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-stone-800 transition-all"
               />
             </div>
 
@@ -929,7 +1113,7 @@ export default function AdminView({
                 placeholder="Aporte, premio, etc."
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-sm font-medium text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
+                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-sm font-medium text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-stone-800 transition-all"
               />
             </div>
           </div>

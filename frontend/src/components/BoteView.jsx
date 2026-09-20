@@ -78,7 +78,7 @@ export default function BoteView({
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10">
+      <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-4 mb-4">
           <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
             FONDO OFICIAL ACUMULADO · SINDICATO
@@ -111,7 +111,7 @@ export default function BoteView({
 
       {/* SECCIÓN JORGE: REGISTRAR GANANCIA DE LA JORNADA */}
       {esJorge && (
-        <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
+        <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
           <div>
             <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-1">
               CONTROL SUPERADMIN
@@ -149,7 +149,7 @@ export default function BoteView({
                   placeholder="Ej: 85.50"
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-[#cbb29b] focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-stone-800 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -162,7 +162,7 @@ export default function BoteView({
                   min="1"
                   value={jornada}
                   onChange={(e) => setJornada(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-[#cbb29b] focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-stone-800 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -175,7 +175,7 @@ export default function BoteView({
                   placeholder="Ej: 11 aciertos"
                   value={aciertos}
                   onChange={(e) => setAciertos(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-[#cbb29b] focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-stone-800 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -187,7 +187,7 @@ export default function BoteView({
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-[#cbb29b] focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-stone-800 focus:outline-none transition-colors"
                 />
               </div>
             </div>
@@ -198,10 +198,10 @@ export default function BoteView({
               </label>
               <input
                 type="text"
-                placeholder="Ej: Boleto sellado en administración"
+                placeholder="Ej: Apuesta sellada en administración"
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
-                className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-[#cbb29b] focus:outline-none transition-colors"
+                className="w-full px-4 py-3 bg-white/30 border border-white/50 text-stone-800 text-sm font-semibold rounded-2xl focus:border-stone-800 focus:outline-none transition-colors"
               />
             </div>
 
@@ -220,7 +220,7 @@ export default function BoteView({
       )}
 
       {/* SECCIÓN 3: HISTORIAL AUDITADO DE GANANCIAS */}
-      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
+      <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
         <div className="flex items-baseline justify-between">
           <h3 className="text-2xl font-bold tracking-tight text-stone-800">
             Historial de Ganancias

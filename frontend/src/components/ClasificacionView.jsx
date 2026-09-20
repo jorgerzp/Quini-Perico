@@ -13,7 +13,7 @@ export default function ClasificacionView({
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10">
+      <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-6 mb-4">
           <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
             RANKING OFICIAL DE ACIERTOS · JORNADA {numeroJornada}
@@ -24,7 +24,7 @@ export default function ClasificacionView({
             onClick={onIrBoleto}
             className="bg-stone-800 text-white text-sm font-semibold tracking-tight rounded-full py-3.5 px-10 shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer"
           >
-            Pronosticar Mi Boleto
+            Pronosticar Mi Apuesta
           </button>
         </div>
 
@@ -38,7 +38,7 @@ export default function ClasificacionView({
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {segundo && (
-          <div className="border border-white/70 rounded-3xl p-8 bg-white/40 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between order-2 md:order-1">
+          <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 flex flex-col justify-between order-2 md:order-1">
             <div>
               <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
                 02 · SEGUNDO
@@ -62,7 +62,7 @@ export default function ClasificacionView({
         )}
 
         {primero && (
-          <div className="border border-white/70 rounded-3xl p-8 sm:p-10 bg-gradient-to-br from-white/60 to-[#d9c5b2]/30 backdrop-blur-2xl flex flex-col justify-between order-1 md:order-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-10 flex flex-col justify-between order-1 md:order-2">
             <div>
               <span className="text-xs font-mono font-bold text-stone-600 uppercase tracking-widest block mb-4">
                 01 · LÍDER DE LA PEÑA
@@ -86,7 +86,7 @@ export default function ClasificacionView({
         )}
 
         {tercero && (
-          <div className="border border-white/70 rounded-3xl p-8 bg-white/40 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between order-3">
+          <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 flex flex-col justify-between order-3">
             <div>
               <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
                 03 · TERCERO
@@ -110,7 +110,7 @@ export default function ClasificacionView({
         )}
       </section>
 
-      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
+      <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
         <div className="flex items-baseline justify-between border-b border-white/50 pb-4">
           <h3 className="text-2xl font-bold tracking-tight text-stone-800">
             Tabla Completa (Los 8)
@@ -146,13 +146,13 @@ export default function ClasificacionView({
                         </span>
                       )}
                       {esElActivo && (
-                        <span className="text-[10px] font-mono font-extrabold text-[#cbb29b] uppercase">
+                        <span className="text-[10px] font-mono font-extrabold text-stone-900 uppercase">
                           (TÚ)
                         </span>
                       )}
                     </div>
                     <p className="text-xs font-mono text-stone-400 mt-0.5">
-                      {user.puntos} puntos · {user.haJugado ? "Boleto sellado" : "Pendiente de jugar"}
+                      {user.puntos} puntos · {user.haJugado ? "Apuesta sellada" : "Pendiente de jugar"}
                     </p>
                   </div>
                 </div>

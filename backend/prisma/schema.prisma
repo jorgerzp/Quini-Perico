@@ -17,6 +17,7 @@ model Usuario {
   avatarColor    String   @default("blue")
   fecha_creacion DateTime @default(now())
   jugadas        Jugada[]
+  notificaciones Notificacion[]
 }
 
 model Bote {
@@ -45,6 +46,7 @@ model Jornada {
   partidos     String?  // JSON con los 6 partidos oficiales de la jornada
   imagenBoleto String?  // Foto del boleto subida por Jorge
   resultados   String?  // JSON con resultados oficiales
+  apuestasAceptadas Boolean @default(false)
   fecha        DateTime @default(now())
   jugadas      Jugada[]
 }
@@ -59,4 +61,17 @@ model Jugada {
   numeros         String?  // Compatibilidad
   puntosObtenidos Int      @default(0)
   fecha_creacion  DateTime @default(now())
+}
+
+model Notificacion {
+  id             Int      @id @default(autoincrement())
+  tipo           String   @default("apuesta") // "apuesta"
+  usuarioId      Int?
+  usuario        Usuario? @relation(fields: [usuarioId], references: [id])
+  usuarioNombre  String
+  jornadaNumero  Int      @default(7)
+  pronosticos    String   // JSON con los pronósticos
+  resumen        String?  // Texto de resumen
+  leida          Boolean  @default(false)
+  fecha_creacion DateTime @default(now())
 }
