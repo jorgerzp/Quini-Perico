@@ -1,22 +1,4 @@
 import React, { useState, useRef } from "react";
-import {
-  ShieldCheck,
-  Coins,
-  Plus,
-  Users,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  Upload,
-  Camera,
-  Scan,
-  Sparkles,
-  FileText,
-  AlertCircle,
-  Save,
-  RotateCcw,
-  Check,
-} from "lucide-react";
 import confetti from "canvas-confetti";
 import { createWorker } from "tesseract.js";
 import { API_URL } from "../config";
@@ -108,13 +90,15 @@ export default function AdminView({
   // Si no es Jorge, pantalla de denegación
   if (!esJorge) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center">
-        <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-10 border border-red-200 text-slate-800 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center mx-auto mb-4 shadow-xs">
-            <AlertCircle size={28} />
-          </div>
-          <h2 className="text-xl font-black text-slate-900">Acceso Restringido</h2>
-          <p className="text-sm text-slate-500 mt-2">
+      <div className="max-w-xl mx-auto py-24 px-6 text-center">
+        <div className="bg-white rounded-3xl p-12 border border-gray-200/80 shadow-xs">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Seguridad
+          </p>
+          <h2 className="text-3xl font-extrabold tracking-tighter text-black mb-3">
+            Acceso Restringido
+          </h2>
+          <p className="text-sm font-medium text-gray-500">
             El panel Superadmin solo está habilitado para Jorge.
           </p>
         </div>
@@ -145,7 +129,7 @@ export default function AdminView({
       setJornadaInput(data.jornada || val);
       setMensajeJornada({
         tipo: "success",
-        texto: `¡Jornada ${data.jornada || val} fijada como oficial para toda la peña!`,
+        texto: `Jornada ${data.jornada || val} fijada como oficial para toda la peña.`,
       });
 
       if (onJornadaActualizada) onJornadaActualizada(data.jornada || val);
@@ -169,154 +153,142 @@ export default function AdminView({
     reader.readAsDataURL(file);
   };
 
-// Funciones auxiliares para normalización, distancia y matching inteligente de equipos
-function normalizeStr(s) {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, " ")
-    .trim();
-}
-
-function levenshtein(a, b) {
-  const m = a.length, n = b.length;
-  const d = Array.from({ length: m + 1 }, () => new Array(n + 1));
-  for (let i = 0; i <= m; i++) d[i][0] = i;
-  for (let j = 0; j <= n; j++) d[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
-    }
-  }
-  return d[m][n];
-}
-
-function findBestTeamMatch(line) {
-  if (!line || line.length < 2) return null;
-
-  // Limpiar caracteres de ruido inicial generados por los escudos (1-3 letras o símbolos raros)
-  // Ej: "Y Athletic Club" -> "Athletic Club", "UB Barcelona" -> "Barcelona", "KT At. Madrid" -> "At. Madrid"
-  const cleaned = line
-    .replace(/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+/, "")
-    .replace(/^[A-Za-z0-9\W]{1,3}\s+/, "")
-    .replace(/\s+[012M\.\,\-\s]{1,6}$/i, "")
-    .trim();
-
-  // Filtrar palabras de cabecera o botones que no son equipos
-  const lowerCleaned = cleaned.toLowerCase();
-  const PALABRAS_PROHIBIDAS = [
-    "pronostica", "partidos", "quinigol", "loterias", "apuestas", "sencilla",
-    "multiple", "aleatoria", "limpiar", "importe", "bote", "jornada", "fecha",
-    "domingo", "sabado", "viernes", "lunes", "martes", "miercoles", "jueves"
-  ];
-  if (PALABRAS_PROHIBIDAS.some((p) => lowerCleaned.includes(p))) {
-    return null;
+  // Funciones auxiliares para normalización, distancia y matching inteligente de equipos
+  function normalizeStr(s) {
+    return (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, " ")
+      .trim();
   }
 
-  const normCleaned = normalizeStr(cleaned);
-  const normOriginal = normalizeStr(line);
-
-  let best = null;
-  let bestScore = 0;
-
-  for (const eq of EQUIPOS_CONOCIDOS) {
-    const normEq = normalizeStr(eq);
-
-    // Coincidencia exacta
-    if (normCleaned === normEq || normOriginal === normEq) {
-      return eq;
-    }
-
-    // Coincidencia de subcadena
-    if (normCleaned.includes(normEq) || normOriginal.includes(normEq)) {
-      if (normEq.length > bestScore) {
-        best = eq;
-        bestScore = normEq.length;
-      }
-    } else if (normCleaned.length >= 4 && normEq.includes(normCleaned)) {
-      if (normCleaned.length > bestScore) {
-        best = eq;
-        bestScore = normCleaned.length;
-      }
-    } else {
-      // Fuzzy matching con distancia Levenshtein
-      const dist = levenshtein(normCleaned, normEq);
-      const maxPermitido = normEq.length > 7 ? 2 : 1;
-      if (dist <= maxPermitido && normEq.length > bestScore) {
-        best = eq;
-        bestScore = normEq.length;
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const d = Array.from({ length: m + 1 }, () => new Array(n + 1));
+    for (let i = 0; i <= m; i++) d[i][0] = i;
+    for (let j = 0; j <= n; j++) d[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
       }
     }
+    return d[m][n];
   }
 
-  // Si no coincide con la lista pero tiene forma de nombre de equipo válido (> 3 letras)
-  if (!best && cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
-    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  function findBestTeamMatch(line) {
+    if (!line || line.length < 2) return null;
+
+    const cleaned = line
+      .replace(/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+/, "")
+      .replace(/^[A-Za-z0-9\W]{1,3}\s+/, "")
+      .replace(/\s+[012M\.\,\-\s]{1,6}$/i, "")
+      .trim();
+
+    const lowerCleaned = cleaned.toLowerCase();
+    const PALABRAS_PROHIBIDAS = [
+      "pronostica", "partidos", "quinigol", "loterias", "apuestas", "sencilla",
+      "multiple", "aleatoria", "limpiar", "importe", "bote", "jornada", "fecha",
+      "domingo", "sabado", "viernes", "lunes", "martes", "miercoles", "jueves"
+    ];
+    if (PALABRAS_PROHIBIDAS.some((p) => lowerCleaned.includes(p))) {
+      return null;
+    }
+
+    const normCleaned = normalizeStr(cleaned);
+    const normOriginal = normalizeStr(line);
+
+    let best = null;
+    let bestScore = 0;
+
+    for (const eq of EQUIPOS_CONOCIDOS) {
+      const normEq = normalizeStr(eq);
+
+      if (normCleaned === normEq || normOriginal === normEq) {
+        return eq;
+      }
+
+      if (normCleaned.includes(normEq) || normOriginal.includes(normEq)) {
+        if (normEq.length > bestScore) {
+          best = eq;
+          bestScore = normEq.length;
+        }
+      } else if (normCleaned.length >= 4 && normEq.includes(normCleaned)) {
+        if (normCleaned.length > bestScore) {
+          best = eq;
+          bestScore = normCleaned.length;
+        }
+      } else {
+        const dist = levenshtein(normCleaned, normEq);
+        const maxPermitido = normEq.length > 7 ? 2 : 1;
+        if (dist <= maxPermitido && normEq.length > bestScore) {
+          best = eq;
+          bestScore = normEq.length;
+        }
+      }
+    }
+
+    if (!best && cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    }
+
+    return best;
   }
 
-  return best;
-}
+  // Preprocesamiento de imagen con Canvas: recorte de columna de equipos y mejora de contraste
+  function preprocessImage(imageSrc, mode = "auto") {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const isPortrait = h / w > 1.25;
 
-// Preprocesamiento de imagen con Canvas: recorte de columna de equipos y mejora de contraste
-function preprocessImage(imageSrc, mode = "auto") {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      const isPortrait = h / w > 1.25;
+        const canvas = document.createElement("canvas");
+        let cropX = 0;
+        let cropY = 0;
+        let cropW = w;
+        let cropH = h;
 
-      const canvas = document.createElement("canvas");
-      let cropX = 0;
-      let cropY = 0;
-      let cropW = w;
-      let cropH = h;
+        if (mode === "teams_column" || (mode === "auto" && isPortrait)) {
+          cropX = Math.round(w * 0.07);
+          cropY = Math.round(h * 0.14);
+          cropW = Math.round(w * 0.50);
+          cropH = Math.round(h * 0.74);
+        }
 
-      if (mode === "teams_column" || (mode === "auto" && isPortrait)) {
-        // En capturas de app móvil (Loterías / Quinigol):
-        // La columna izquierda contiene los nombres de los equipos de los 6 partidos (dos filas por partido)
-        // Se excluye la botonera [0][1][2][M] de la derecha para evitar caracteres parásitos.
-        cropX = Math.round(w * 0.07);
-        cropY = Math.round(h * 0.14);
-        cropW = Math.round(w * 0.50);
-        cropH = Math.round(h * 0.74);
-      }
+        const scale = Math.max(2.5, Math.min(4.5, 1200 / cropW));
+        canvas.width = Math.round(cropW * scale);
+        canvas.height = Math.round(cropH * scale);
 
-      // Escalar 3x para que las letras tengan altura óptima de reconocimiento
-      const scale = Math.max(2.5, Math.min(4.5, 1200 / cropW));
-      canvas.width = Math.round(cropW * scale);
-      canvas.height = Math.round(cropH * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-      const ctx = canvas.getContext("2d");
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          const val = gray > 180 ? 255 : Math.max(0, (gray - 35) * 1.6);
+          data[i] = val;
+          data[i + 1] = val;
+          data[i + 2] = val;
+        }
+        ctx.putImageData(imgData, 0, 0);
 
-      // Filtro de contraste y binarización a escala de grises
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        const val = gray > 180 ? 255 : Math.max(0, (gray - 35) * 1.6);
-        data[i] = val;
-        data[i + 1] = val;
-        data[i + 2] = val;
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      resolve({
-        dataUrl: canvas.toDataURL("image/png"),
-        isPortrait,
-      });
-    };
-    img.onerror = reject;
-    img.src = imageSrc;
-  });
-}
+        resolve({
+          dataUrl: canvas.toDataURL("image/png"),
+          isPortrait,
+        });
+      };
+      img.onerror = reject;
+      img.src = imageSrc;
+    });
+  }
 
   // Parser heurístico avanzado para extraer los 6 partidos del texto de la foto
   const parsearTextoQuinigol = (text) => {
@@ -327,7 +299,6 @@ function preprocessImage(imageSrc, mode = "auto") {
       .map((l) => l.trim())
       .filter((l) => l.length >= 2);
 
-    // ESTRATEGIA 1: Líneas con separadores claros (" - ", " vs ", " – ", " — ")
     const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / "];
     const partidosSeparador = [];
 
@@ -362,7 +333,6 @@ function preprocessImage(imageSrc, mode = "auto") {
       }));
     }
 
-    // ESTRATEGIA 2: Lista secuencial de equipos (Captura de app: columna izquierda con los equipos seguidos de arriba a abajo)
     const equiposDetectados = [];
     for (const linea of lineas) {
       const team = findBestTeamMatch(linea);
@@ -406,8 +376,7 @@ function preprocessImage(imageSrc, mode = "auto") {
     setMensajePartidos(null);
 
     try {
-      // 1. Preprocesar y enfocar la columna de nombres de equipos (evita botones [0][1][2][M])
-      setEstadoOcrTexto("Aislando y mejorando la columna de equipos...");
+      setEstadoOcrTexto("Aislando y mejorando columna de equipos...");
       const prep = await preprocessImage(imagenPreview, "auto");
 
       const worker = await createWorker("spa");
@@ -419,7 +388,6 @@ function preprocessImage(imageSrc, mode = "auto") {
       let partidosParseados = parsearTextoQuinigol(texto);
       let numRellenados = partidosParseados.filter((p) => p.home && p.away).length;
 
-      // Si por formato de la foto no detectó suficientes equipos con el recorte de columna, probar la imagen completa optimizada
       if (numRellenados < 4 && prep.isPortrait) {
         setEstadoOcrTexto("Probando reconocimiento amplio de la imagen...");
         const fullPrep = await preprocessImage(imagenPreview, "full_enhanced");
@@ -434,17 +402,14 @@ function preprocessImage(imageSrc, mode = "auto") {
       await worker.terminate();
 
       setTextoExtraidoRaw(texto);
-
-      // Rellenar los inputs editables inmediatamente
       setPartidosEditables(partidosParseados);
       setProgresoOcr(100);
 
       setMensajePartidos({
         tipo: "success",
-        texto: "¡Equipos reconocidos con éxito! Se han colocado en los 6 partidos de abajo. Revísalos y confirma antes de guardar.",
+        texto: "Equipos reconocidos con éxito y aplicados en la tabla inferior. Revisa y confirma antes de guardar.",
       });
 
-      // Scroll suave hacia la sección de confirmación de partidos
       setTimeout(() => {
         const el = document.getElementById("seccion-partidos-editables");
         if (el) {
@@ -498,7 +463,7 @@ function preprocessImage(imageSrc, mode = "auto") {
 
       setMensajePartidos({
         tipo: "success",
-        texto: `¡Partidos oficiales de la Jornada ${data.jornada || jornadaInput} guardados y aplicados para toda la peña!`,
+        texto: `Partidos oficiales de la Jornada ${data.jornada || jornadaInput} guardados correctamente.`,
       });
 
       if (onPartidosActualizados) {
@@ -542,7 +507,7 @@ function preprocessImage(imageSrc, mode = "auto") {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setMensajeBote({ tipo: "success", texto: `+${val.toFixed(2)} € añadidos al bote con éxito.` });
+      setMensajeBote({ tipo: "success", texto: `+${val.toFixed(2)} € añadidos al bote.` });
       setCantidad("");
       setConcepto("");
 
@@ -554,7 +519,7 @@ function preprocessImage(imageSrc, mode = "auto") {
     }
   };
 
-  // Resetear partidos a estado inicial (sin configurar)
+  // Resetear partidos a estado inicial
   const reiniciarPartidos = async () => {
     if (
       !window.confirm(
@@ -585,7 +550,7 @@ function preprocessImage(imageSrc, mode = "auto") {
       setTextoExtraidoRaw("");
       setMensajePartidos({
         tipo: "success",
-        texto: "Partidos eliminados. El boleto vuelve al estado 'sin quinigol disponible'.",
+        texto: "Partidos eliminados correctamente.",
       });
       if (onPartidosActualizados) onPartidosActualizados(null);
     } catch (err) {
@@ -615,7 +580,7 @@ function preprocessImage(imageSrc, mode = "auto") {
 
       setMensajeBote({
         tipo: "success",
-        texto: "Bote reiniciado a 0.00 € e historial de ganancias vaciado.",
+        texto: "Bote reiniciado a 0.00 € e historial vaciado.",
       });
       if (onBoteActualizado) onBoteActualizado();
     } catch (err) {
@@ -626,124 +591,105 @@ function preprocessImage(imageSrc, mode = "auto") {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-in fade-in duration-300 text-slate-800">
+    <div className="max-w-5xl mx-auto space-y-16 pb-20 text-black">
       {/* Header Superadmin */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 border-b border-gray-200/80">
         <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/20 text-xs font-black tracking-wider uppercase mb-2">
-            <ShieldCheck size={14} /> Panel Superadmin Jorge
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
-            Control Maestro de la Jornada
+          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-3">
+            Superadmin · Jorge
+          </p>
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-black">
+            Control Maestro
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Escaneo OCR de fotos oficiales de boletos, partidos y gestión del bote
+          <p className="text-sm font-medium text-gray-500 tracking-tight mt-2">
+            Escaneo OCR de fotos oficiales, configuración de partidos y gestión de fondos.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onIrResultados}
-          className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-black text-xs font-bold text-white transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 shadow-md"
+          className="self-start sm:self-auto px-8 py-3.5 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer"
         >
-          <span>Poner Resultados Oficiales</span>
-          <ArrowRight size={14} />
+          Resultados Oficiales
         </button>
       </div>
 
       {/* CONTROL OFICIAL DE NÚMERO DE JORNADA */}
-      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-7 border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] flex flex-wrap items-center justify-between gap-5">
-        <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 to-gray-800 text-white flex flex-col items-center justify-center font-mono shadow-md border border-white/30">
-            <span className="text-[10px] font-bold text-slate-300 uppercase leading-none">JORNADA</span>
-            <span className="text-2xl font-black leading-none mt-0.5">{jornadaInput}</span>
-          </div>
+      <div className="space-y-6 pb-12 border-b border-gray-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-600">
-                Jornada Oficial en Curso
+            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
+              Edición Oficial
+            </p>
+            <div className="flex items-baseline gap-4">
+              <span className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-black font-mono">
+                J.{jornadaInput}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/25 text-[10px] font-bold">
-                Jornada {jornadaInput}
+              <span className="text-sm font-medium text-gray-500 tracking-tight">
+                Jornada activa para toda la peña
               </span>
             </div>
-            <h3 className="text-xl font-black text-slate-900">
-              Edición y Número de la Jornada
-            </h3>
-            <p className="text-xs text-slate-500">
-              Actualmente se muestra la <strong>Jornada {jornadaInput}</strong> a toda la peña. Puedes cambiarla o avanzar a la siguiente cuando toque.
-            </p>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={guardandoJornada}
-            onClick={() => guardarNumeroJornada(Number(jornadaInput) + 1)}
-            className="px-4 py-2.5 rounded-2xl bg-white/60 hover:bg-white border border-white/80 text-xs font-bold text-slate-800 transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
-          >
-            <span>+1 Avanzar a Jornada {Number(jornadaInput) + 1}</span>
-          </button>
-
-          <div className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-2xl border border-white/80 shadow-xs">
-            <span className="text-xs text-slate-500 font-bold">Nº:</span>
-            <input
-              type="number"
-              min="1"
-              value={jornadaInput}
-              onChange={(e) => setJornadaInput(e.target.value)}
-              className="w-16 px-2 py-1 rounded-xl bg-white text-slate-900 text-xs font-mono font-bold text-center border border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-900"
-            />
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               disabled={guardandoJornada}
-              onClick={() => guardarNumeroJornada(jornadaInput)}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black transition-all cursor-pointer disabled:opacity-50"
+              onClick={() => guardarNumeroJornada(Number(jornadaInput) + 1)}
+              className="px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
             >
-              {guardandoJornada ? "Guardando..." : "Fijar"}
+              +1 Avanzar a J.{Number(jornadaInput) + 1}
             </button>
+
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200/80">
+              <span className="text-xs text-gray-400 font-semibold uppercase pl-2">Nº</span>
+              <input
+                type="number"
+                min="1"
+                value={jornadaInput}
+                onChange={(e) => setJornadaInput(e.target.value)}
+                className="w-16 px-2 py-1 bg-transparent text-black text-sm font-mono font-bold text-center focus:outline-none"
+              />
+              <button
+                type="button"
+                disabled={guardandoJornada}
+                onClick={() => guardarNumeroJornada(jornadaInput)}
+                className="px-5 py-2 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
+              >
+                {guardandoJornada ? "..." : "Fijar"}
+              </button>
+            </div>
           </div>
         </div>
 
         {mensajeJornada && (
-          <div
-            className={`w-full p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 border animate-in fade-in duration-200 shadow-xs ${
-              mensajeJornada.tipo === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
-          >
-            <CheckCircle2 size={15} />
-            <span>{mensajeJornada.texto}</span>
+          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+            {mensajeJornada.texto}
           </div>
         )}
       </div>
 
       {/* SECCIÓN 1: ESCÁNER OCR DE FOTO DE LA JORNADA */}
-      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/60">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-gray-800 flex items-center justify-center text-white shadow-xs border border-white/30">
-              <Scan size={24} />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                Escáner OCR: Foto de la Jornada {jornadaInput}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Sube la foto del boleto o calendario y el OCR extraerá los 6 partidos y los rellenará abajo para que puedas confirmarlos antes de guardar
-              </p>
-            </div>
-          </div>
+      <div className="space-y-8 pb-12 border-b border-gray-200/80">
+        <div>
+          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
+            Reconocimiento Automático
+          </p>
+          <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
+            Escáner OCR · Jornada {jornadaInput}
+          </h3>
+          <p className="text-sm font-medium text-gray-500 tracking-tight mt-1">
+            Sube la captura oficial del boleto y el OCR extraerá los 6 enfrentamientos automáticamente.
+          </p>
         </div>
 
         {/* Zona de Subida y Previsualización */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           {/* Uploader */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-3xl p-8 text-center cursor-pointer transition-all bg-white/20 hover:bg-white/40 group flex flex-col items-center justify-center min-h-[220px]"
+            className="border border-dashed border-gray-300 hover:border-black rounded-3xl p-10 text-center cursor-pointer transition-colors bg-white hover:bg-gray-50 flex flex-col items-center justify-center min-h-[220px]"
           >
             <input
               ref={fileInputRef}
@@ -753,45 +699,40 @@ function preprocessImage(imageSrc, mode = "auto") {
               onChange={manejarSeleccionImagen}
             />
 
-            <div className="w-14 h-14 rounded-2xl bg-white/80 group-hover:bg-white flex items-center justify-center text-slate-600 group-hover:text-slate-900 transition-colors mb-3 border border-white/60 shadow-xs">
-              <Upload size={24} />
-            </div>
-
-            <p className="text-sm font-bold text-slate-800 group-hover:text-slate-950">
-              Arrastra o haz clic para subir foto del boleto
+            <p className="text-base font-semibold text-black mb-1">
+              Subir foto del boleto
             </p>
-            <p className="text-xs text-slate-500 mt-1">
-              JPG, PNG o foto tomada con la cámara
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Arrastra aquí o haz clic (JPG, PNG)
             </p>
           </div>
 
           {/* Preview y Acción de Escaneo */}
-          <div className="apple-card-inner bg-white/25 backdrop-blur-md rounded-3xl p-5 border border-white/60 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
+          <div className="bg-white rounded-3xl p-6 border border-gray-200/80 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
             {imagenPreview ? (
               <div className="w-full space-y-4">
-                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-white/60 shadow-xs">
+                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-gray-200">
                   <img
                     src={imagenPreview}
                     alt="Foto Jornada"
                     className="w-full h-full object-cover"
                   />
                   {procesandoOcr && (
-                    <div className="absolute inset-0 bg-white/85 backdrop-blur-xs flex flex-col items-center justify-center text-slate-800 p-4">
-                      <div className="w-8 h-8 border-3 border-slate-800 border-t-transparent rounded-full animate-spin mb-3"></div>
-                      <p className="text-xs font-bold text-center">{estadoOcrTexto}</p>
+                    <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center text-black p-4">
+                      <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mb-3"></div>
+                      <p className="text-xs font-semibold text-center">{estadoOcrTexto}</p>
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     type="button"
                     disabled={procesandoOcr}
                     onClick={ejecutarOcr}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-black text-white text-xs font-bold tracking-wide shadow-md transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-3.5 px-6 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
                   >
-                    <Sparkles size={15} />
-                    <span>{procesandoOcr ? "Analizando OCR..." : "Escanear Foto con OCR"}</span>
+                    {procesandoOcr ? "Analizando..." : "Escanear con OCR"}
                   </button>
 
                   <button
@@ -800,108 +741,82 @@ function preprocessImage(imageSrc, mode = "auto") {
                       setImagenPreview(null);
                       setTextoExtraidoRaw("");
                     }}
-                    className="p-3 rounded-2xl bg-white/60 hover:bg-white border border-white/80 text-slate-500 hover:text-slate-800 transition cursor-pointer shadow-xs"
-                    title="Quitar foto"
+                    className="px-5 py-3.5 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                   >
-                    <RotateCcw size={15} />
+                    Quitar
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center p-6 text-slate-400">
-                <Camera size={36} className="mx-auto mb-2 opacity-50 text-slate-400" />
-                <p className="text-xs font-medium text-slate-400">
-                  Aún no has seleccionado ninguna imagen.
-                </p>
-              </div>
+              <p className="text-sm font-medium text-gray-400">
+                Sin imagen seleccionada.
+              </p>
             )}
           </div>
         </div>
 
         {/* Mensaje de estado OCR */}
         {mensajePartidos && (
-          <div
-            className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 mb-6 border animate-in fade-in duration-200 shadow-xs ${
-              mensajePartidos.tipo === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
-          >
-            {mensajePartidos.tipo === "success" ? (
-              <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-            ) : (
-              <AlertCircle size={16} className="shrink-0 text-red-600" />
-            )}
-            <span>{mensajePartidos.texto}</span>
+          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+            {mensajePartidos.texto}
           </div>
         )}
 
         {/* Partidos Extraídos / Editables (Confirmar antes de Guardar) */}
-        <div id="seccion-partidos-editables" className="space-y-4 pt-4 border-t border-white/50">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div id="seccion-partidos-editables" className="space-y-6 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <FileText size={18} className="text-slate-600" />
-                Revisar y Confirmar los 6 Partidos de la Jornada {jornadaInput}
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Los equipos leídos con el OCR se rellenan aquí. Puedes corregir cualquier nombre antes de aplicar.
+              <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+                Verificación
               </p>
+              <h4 className="text-xl font-extrabold tracking-tight text-black">
+                Confirmar los 6 Partidos
+              </h4>
             </div>
-            <span className="text-[11px] px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/25 font-mono font-bold">
+            <span className="text-xs font-mono font-semibold text-gray-400 uppercase">
               6 Enfrentamientos
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {partidosEditables.map((partido, idx) => {
               const completado = Boolean(partido.home && partido.away);
               return (
                 <div
                   key={partido.id || idx}
-                  className={`apple-card-inner bg-white/30 backdrop-blur-md rounded-2xl p-4 border transition-all duration-200 ${
-                    completado ? "border-emerald-300/80 bg-emerald-50/40" : "border-white/60"
-                  }`}
+                  className="bg-white rounded-2xl p-5 border border-gray-200/80 space-y-3"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-[11px] shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase font-mono">
                       PARTIDO 0{idx + 1}
                     </span>
-                    {completado ? (
-                      <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                        <Check size={12} /> Confirmado
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Por rellenar</span>
-                    )}
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      {completado ? "Listo" : "Incompleto"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Local */}
-                    <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Local</label>
+                  <div className="grid grid-cols-5 items-center gap-2">
+                    <div className="col-span-2">
                       <input
                         type="text"
                         value={partido.home}
                         onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
-                        placeholder={`Equipo Local 0${idx + 1}`}
-                        className="w-full px-3 py-2 rounded-xl bg-white/70 border border-white/90 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 shadow-xs"
+                        placeholder="Local"
+                        className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-gray-200/80 text-xs font-semibold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
                       />
                     </div>
 
-                    <span className="text-[10px] font-black text-slate-500 px-2 py-1 rounded bg-white/60 border border-white/80 mt-4 shadow-2xs">
-                      VS
-                    </span>
+                    <div className="col-span-1 text-center">
+                      <span className="text-xs font-extrabold text-gray-400 tracking-wider">VS</span>
+                    </div>
 
-                    {/* Visitante */}
-                    <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Visitante</label>
+                    <div className="col-span-2">
                       <input
                         type="text"
                         value={partido.away}
                         onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
-                        placeholder={`Equipo Visitante 0${idx + 1}`}
-                        className="w-full px-3 py-2 rounded-xl bg-white/70 border border-white/90 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 shadow-xs"
+                        placeholder="Visitante"
+                        className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-gray-200/80 text-xs font-semibold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
                       />
                     </div>
                   </div>
@@ -910,18 +825,18 @@ function preprocessImage(imageSrc, mode = "auto") {
             })}
           </div>
 
-          {/* Botón Guardar Partidos de la Jornada */}
+          {/* Botones de acción */}
           <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
             {textoExtraidoRaw ? (
               <button
                 type="button"
                 onClick={() => setMostrarTextoRaw(!mostrarTextoRaw)}
-                className="text-xs text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-black transition-colors cursor-pointer"
               >
-                {mostrarTextoRaw ? "Ocultar texto OCR en bruto" : "Ver texto OCR reconocido"}
+                {mostrarTextoRaw ? "Ocultar texto OCR" : "Ver texto OCR en bruto"}
               </button>
             ) : (
-              <span className="text-xs text-slate-400">Revisa los nombres antes de guardar</span>
+              <span className="text-xs text-gray-400 font-medium">Revisa los nombres antes de guardar</span>
             )}
 
             <div className="flex items-center gap-3 ml-auto">
@@ -929,10 +844,9 @@ function preprocessImage(imageSrc, mode = "auto") {
                 type="button"
                 onClick={reiniciarPartidos}
                 disabled={guardandoPartidos}
-                className="px-4 py-3 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all duration-200 shadow-xs disabled:opacity-50"
+                className="px-6 py-4 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
               >
-                <RotateCcw size={14} />
-                <span>Vaciar Partidos</span>
+                Vaciar Partidos
               </button>
 
               <button
@@ -940,61 +854,49 @@ function preprocessImage(imageSrc, mode = "auto") {
                 id="btn-guardar-partidos-ocr"
                 disabled={guardandoPartidos}
                 onClick={guardarPartidosEnServidor}
-                className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs tracking-wider uppercase shadow-lg shadow-slate-900/20 transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                className="px-8 py-4 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
               >
-                <Save size={16} />
-                <span>{guardandoPartidos ? "Guardando..." : `Guardar y Aplicar Partidos (Jornada ${jornadaInput})`}</span>
+                {guardandoPartidos ? "Guardando..." : `Guardar Partidos (Jornada ${jornadaInput})`}
               </button>
             </div>
           </div>
 
-          {/* Desglose texto crudo OCR si se solicita */}
           {mostrarTextoRaw && (
-            <div className="mt-4 p-4 rounded-2xl bg-white/80 border border-white font-mono text-[11px] text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto shadow-inner">
+            <div className="p-4 rounded-2xl bg-gray-100 border border-gray-200 font-mono text-xs text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
               {textoExtraidoRaw}
             </div>
           )}
         </div>
       </div>
 
-      {/* SECCIÓN 2: GESTIÓN DEL BOTE POR JORGE (SIN DATOS DE EJEMPLO) */}
-      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/60">
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-xs border border-white/30">
-              <Coins size={24} />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                Gestión del Bote por Jorge
-              </h3>
-              <p className="text-xs text-slate-500">
-                Añade fondos o ganancias directamente al bote acumulado de la peña
-              </p>
-            </div>
+      {/* SECCIÓN 2: GESTIÓN DEL BOTE POR JORGE */}
+      <div className="space-y-8 pb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
+              Tesorería
+            </p>
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
+              Añadir Fondos al Bote
+            </h3>
+            <p className="text-sm font-medium text-gray-500 tracking-tight mt-1">
+              Suma ganancias o aportes manuales directamente al bote acumulado.
+            </p>
           </div>
 
           <button
             type="button"
             onClick={reiniciarBoteACero}
             disabled={guardandoBote}
-            className="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all duration-200 shadow-xs disabled:opacity-50"
+            className="self-start sm:self-auto px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
           >
-            <RotateCcw size={14} />
-            <span>Poner Bote a 0.00 €</span>
+            Poner Bote a 0.00 €
           </button>
         </div>
 
         {mensajeBote && (
-          <div
-            className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 mb-4 border animate-in fade-in duration-200 shadow-xs ${
-              mensajeBote.tipo === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
-          >
-            <CheckCircle2 size={15} />
-            <span>{mensajeBote.texto}</span>
+          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+            {mensajeBote.texto}
           </div>
         )}
 
@@ -1003,39 +905,34 @@ function preprocessImage(imageSrc, mode = "auto") {
             e.preventDefault();
             sumarBote(cantidad, concepto);
           }}
-          className="space-y-4"
+          className="space-y-6"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="text-xs font-bold text-slate-600 block mb-1.5">
-                Importe a Añadir (€) *
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2 block">
+                Importe (€)
               </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Introduce cantidad"
-                  value={cantidad}
-                  onChange={(e) => setCantidad(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/80 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-xs"
-                />
-                <span className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">
-                  €
-                </span>
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-2xl bg-[#f5f5f7] border border-gray-200/80 text-base font-mono font-bold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-600 block mb-1.5">
-                Concepto / Motivo
+              <label className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2 block">
+                Concepto
               </label>
               <input
                 type="text"
-                placeholder="Aportación, bote acumulado, etc."
+                placeholder="Aporte, premio, etc."
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/80 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-xs"
+                className="w-full px-4 py-3.5 rounded-2xl bg-[#f5f5f7] border border-gray-200/80 text-sm font-medium text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
               />
             </div>
           </div>
@@ -1044,10 +941,9 @@ function preprocessImage(imageSrc, mode = "auto") {
             <button
               type="submit"
               disabled={guardandoBote || !cantidad}
-              className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-slate-900/20 transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-4 rounded-full bg-black text-white text-sm font-semibold tracking-tight hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
             >
-              <Plus size={15} />
-              <span>{guardandoBote ? "Añadiendo..." : "Añadir Fondos al Bote"}</span>
+              {guardandoBote ? "Añadiendo..." : "Añadir Fondos al Bote"}
             </button>
           </div>
         </form>

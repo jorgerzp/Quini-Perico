@@ -6,7 +6,6 @@ import ResultadosView from "./components/ResultadosView";
 import ClasificacionView from "./components/ClasificacionView";
 import AdminView from "./components/AdminView";
 import LoginView from "./components/LoginView";
-import { LogOut } from "lucide-react";
 
 const STORAGE_AUTH_KEY = "quini_perico_auth_user";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -186,12 +185,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen frosted-bg bg-gradient-to-br from-stone-100 via-gray-50 to-stone-200 flex flex-col lg:flex-row antialiased text-slate-800 selection:bg-slate-900 selection:text-white relative overflow-x-hidden font-sans">
-      {/* Luces ambientales translúcidas de fondo estilo VisionOS */}
-      <div className="fixed top-[-100px] left-[-100px] w-[550px] h-[550px] rounded-full bg-blue-100/50 blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed bottom-[-100px] right-[-100px] w-[550px] h-[550px] rounded-full bg-amber-100/45 blur-[140px] pointer-events-none -z-10" />
-
-      {/* Dashboard Lateral Traslúcido Apple Frosted Glass */}
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col lg:flex-row antialiased text-black selection:bg-black selection:text-white font-sans">
+      {/* Dashboard Lateral Apple Minimalista */}
       <Sidebar
         seccionActiva={seccionActiva}
         setSeccionActiva={setSeccionActiva}
@@ -201,61 +196,35 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Área de Contenido Principal sobre el Cristal Esmerilado */}
-      <main className="flex-1 p-4 sm:p-8 lg:p-10 lg:ml-0 overflow-y-auto max-w-6xl w-full">
-        {/* Cabecera Superior Frosted Glass: JORNADA X */}
-        <div className="mb-6 p-4 sm:px-6 sm:py-3.5 rounded-3xl apple-card-opaque border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.06)] flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-slate-900 to-gray-800 text-white flex flex-col items-center justify-center font-mono shadow-sm shrink-0 border border-white/30">
-              <span className="text-[9px] font-bold text-slate-300 leading-none uppercase">JORNADA</span>
-              <span className="text-xl font-black leading-none mt-0.5">{numeroJornada}</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-                  QUINIGOL OFICIAL
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/25 text-[10px] font-bold">
-                  Jornada {numeroJornada} Activa
-                </span>
-              </div>
-              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Peña Quini-Perico
-              </h1>
-            </div>
+      {/* Área de Contenido Principal con espaciado generoso */}
+      <main className="flex-1 p-6 sm:p-12 lg:p-16 overflow-y-auto max-w-5xl w-full mx-auto">
+        {/* Cabecera Superior Minimalista Extrema */}
+        <div className="hairline-b pb-8 mb-12 flex flex-wrap items-baseline justify-between gap-6">
+          <div>
+            <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-1">
+              JORNADA {numeroJornada} · QUINIGOL OFICIAL
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
+              QUINI-PERICO
+            </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 hidden md:inline">
-                {partidos && partidos.length === 6 ? "Partidos fijados para la jornada" : "En espera de Jorge"}
-              </span>
-              <span
-                className={`w-2.5 h-2.5 rounded-full ${
-                  partidos && partidos.length === 6 ? "bg-emerald-500 shadow-sm" : "bg-amber-400"
-                }`}
-              ></span>
-            </div>
+          <div className="flex items-center gap-6">
+            <span className="text-xs font-semibold tracking-wide uppercase text-gray-400">
+              {usuarioActivo?.nombre || "Miembro"}
+            </span>
 
-            <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-800 px-3 py-1 rounded-xl bg-white/70 border border-white/80 shadow-xs">
-                {usuarioActivo?.nombre || "Miembro"}
-              </span>
-              <button
-                type="button"
-                id="btn-top-logout"
-                onClick={handleLogout}
-                title="Cerrar Sesión"
-                className="px-3 py-1.5 rounded-xl bg-white/40 hover:bg-white/80 border border-white/70 text-slate-600 hover:text-red-600 text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-xs"
-              >
-                <LogOut size={13} />
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              id="btn-top-logout"
+              onClick={handleLogout}
+              className="text-xs font-semibold tracking-wider uppercase text-gray-400 hover:text-black transition-colors cursor-pointer"
+            >
+              Cerrar Sesión
+            </button>
           </div>
         </div>
+
 
         {seccionActiva === "boleto" && (
           <BoletoView

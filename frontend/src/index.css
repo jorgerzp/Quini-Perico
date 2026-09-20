@@ -4,107 +4,47 @@
   body {
     margin: 0;
     min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background-color: #fafaf9;
-    color: #1e293b;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: #f5f5f7;
+    color: #000000;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.015em;
   }
 }
 
-/* Fondo minimalista suave, fluido y cálido estilo Apple Glassmorphism */
-.frosted-bg {
-  background: linear-gradient(135deg, #f5f5f4 0%, #fafaf9 40%, #f4f4f5 70%, #e7e5e4 100%);
+/* Minimalist stark layout utilities */
+.apple-minimal-bg {
+  background-color: #f5f5f7;
   min-height: 100vh;
 }
 
-/* Glassmorphism Containers & Cards (Floating Frosted Glass Effect) */
-.apple-card-opaque {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07), 0 1px 1px 0 rgba(255, 255, 255, 0.9) inset;
+/* Hairline borders Apple style */
+.hairline-b {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.apple-card-inner {
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 2px 10px 0 rgba(31, 38, 135, 0.03);
+.hairline-t {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.apple-glass-sidebar {
-  background: rgba(255, 255, 255, 0.48);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border-right: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow: 4px 0 32px 0 rgba(31, 38, 135, 0.04);
+.hairline-r {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Botones con micro-interacciones suaves Apple */
-.apple-btn-dark {
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px 0 rgba(15, 23, 42, 0.15);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.apple-btn-dark:hover {
-  background: rgba(0, 0, 0, 0.96);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px 0 rgba(0, 0, 0, 0.22);
-}
-.apple-btn-dark:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.apple-btn-light {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #334155;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.apple-btn-light:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: #0f172a;
-  border-color: rgba(255, 255, 255, 1);
-  box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.07);
-  transform: translateY(-1px);
-}
-.apple-btn-light:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* Hover suave en tarjetas frosted glass */
-.apple-card-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.apple-card-hover:hover {
-  background: rgba(255, 255, 255, 0.52);
-  border-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 16px 40px 0 rgba(31, 38, 135, 0.09), 0 1px 1px 0 rgba(255, 255, 255, 1) inset;
-  transform: translateY(-2px);
-}
-
-/* Barra de desplazamiento sutil y minimalista */
+/* Scrollbar ultra-fina minimalista */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.3);
 }
+
