@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Ticket, Sparkles, CheckCircle2, RotateCcw, Send, Crown, Check } from "lucide-react";
+import { Ticket, Sparkles, CheckCircle2, RotateCcw, Send, Crown, Check, AlertCircle } from "lucide-react";
 import confetti from "canvas-confetti";
-
-const MATCHES_FALLBACK = [
-  { id: 1, key: "partido1", numStr: "01", home: "Real Madrid", away: "FC Barcelona", fixture: "El Clásico" },
-  { id: 2, key: "partido2", numStr: "02", home: "Atlético de Madrid", away: "Athletic Club", fixture: "LaLiga Matchday" },
-  { id: 3, key: "partido3", numStr: "03", home: "Real Betis", away: "Sevilla FC", fixture: "Derbi Sevillano" },
-  { id: 4, key: "partido4", numStr: "04", home: "Valencia CF", away: "Villarreal CF", fixture: "Derbi de la Comunitat" },
-  { id: 5, key: "partido5", numStr: "05", home: "Real Sociedad", away: "Girona FC", fixture: "Lucha Europea" },
-  { id: 6, key: "partido6", numStr: "06", home: "RCD Espanyol", away: "RC Celta de Vigo", fixture: "Partido Quini-Perico" },
-];
+import { API_URL } from "../config";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
@@ -22,14 +14,18 @@ const emptyPredictions = {
   partido6: { local: null, visitante: null },
 };
 
-export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos = [] }) {
+export default function BoletoView({
+  usuarioActivo,
+  onJugadaConfirmada,
+  partidos = null,
+  onIrAdmin,
+}) {
   const [predictions, setPredictions] = useState(emptyPredictions);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const matchesList = partidos && partidos.length === 6 ? partidos : MATCHES_FALLBACK;
-
-  const isJorge = usuarioActivo?.nombre === "Jorge";
+  const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
+  const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
   const userName = usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
 
   // Cargar jugada previa del usuario si ya existe
@@ -42,6 +38,64 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
     }
   }, [usuarioActivo]);
 
+  // Si Jorge aún no ha introducido los partidos de la jornada
+  if (!hayPartidos) {
+    if (!isJorge) {
+      return (
+        <div className="max-w-xl mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
+          <div className="apple-card-opaque rounded-3xl p-10 sm:p-12 shadow-2xl border border-white/12 flex flex-col items-center text-white">
+            <div className="w-16 h-16 rounded-3xl bg-black/60 border border-white/10 text-slate-400 flex items-center justify-center mb-5 shadow-inner">
+              <Ticket size={32} />
+            </div>
+
+            <h2 className="text-2xl font-black tracking-tight text-white">
+              Aún no hay ningún quinigol disponible
+            </h2>
+
+            <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
+              Jorge aún no ha introducido los equipos de los partidos de esta jornada. En cuanto los introduzca, aparecerán aquí para que puedas hacer tus pronósticos.
+            </p>
+
+            <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
+              Jornada en espera de los equipos
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Si es Jorge (Superadmin)
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
+        <div className="apple-card-opaque rounded-3xl p-10 sm:p-12 shadow-2xl border border-white/12 flex flex-col items-center text-white">
+          <div className="w-16 h-16 rounded-3xl bg-blue-600/20 border border-blue-400/30 text-blue-400 flex items-center justify-center mb-5 shadow-inner">
+            <Ticket size={32} />
+          </div>
+
+          <h2 className="text-2xl font-black tracking-tight text-white">
+            Introduce los Partidos de la Jornada
+          </h2>
+
+          <p className="text-sm text-slate-300 mt-2.5 max-w-md leading-relaxed">
+            Como Superadmin, debes introducir los nombres de los equipos que se enfrentan en los 6 partidos (escribiéndolos o subiendo la foto del boleto con el OCR). En cuanto los guardes, aparecerán en el boleto de toda la peña.
+          </p>
+
+          {onIrAdmin && (
+            <button
+              type="button"
+              onClick={onIrAdmin}
+              className="mt-8 px-6 py-3.5 rounded-2xl bg-blue-600 border border-blue-400/40 text-white font-black text-xs uppercase tracking-wider shadow-xl hover-black-btn cursor-pointer flex items-center gap-2"
+            >
+              <Sparkles size={16} />
+              <span>Configurar Partidos en Superadmin</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // PARTIDOS DISPONIBLES: RENDERIZAR BOLETO
   const handleSelectGoal = (matchKey, side, value) => {
     setPredictions((prev) => ({
       ...prev,
@@ -60,7 +114,7 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
 
   const handleAutoFill = () => {
     const randomPreds = {};
-    matchesList.forEach((m) => {
+    partidos.forEach((m) => {
       randomPreds[m.key] = {
         local: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
         visitante: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
@@ -70,7 +124,6 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
     setFeedback(null);
   };
 
-  // Calcular selecciones hechas
   let totalSubmitted = 0;
   Object.values(predictions).forEach((p) => {
     if (p.local !== null) totalSubmitted++;
@@ -78,7 +131,6 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
   });
   const isComplete = totalSubmitted === 12;
 
-  // Confirmar y guardar boleto en backend
   const handleConfirmTicket = async () => {
     if (!isComplete) {
       setFeedback({
@@ -92,7 +144,7 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
     setFeedback(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/jugadas", {
+      const res = await fetch(`${API_URL}/api/jugadas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -157,7 +209,7 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in duration-300">
-      {/* Encabezado Premium */}
+      {/* Encabezado */}
       <section className="text-center pt-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-black tracking-wider uppercase mb-3 border border-blue-400/30">
           <Ticket size={14} /> Boleto Oficial de la Jornada
@@ -238,9 +290,9 @@ export default function BoletoView({ usuarioActivo, onJugadaConfirmada, partidos
         </div>
       </section>
 
-      {/* Lista de los 6 Partidos */}
+      {/* Lista de los 6 Partidos configurados por Jorge */}
       <section className="space-y-4">
-        {matchesList.map((match, idx) => {
+        {partidos.map((match, idx) => {
           const key = match.key || `partido${idx + 1}`;
           const current = predictions[key] || { local: null, visitante: null };
           const summary = getMatchSummary(current.local, current.visitante);

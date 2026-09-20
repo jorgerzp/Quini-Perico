@@ -9,45 +9,36 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Semillado inicial de los 8 usuarios oficiales y el Bote
+// Semillado inicial de los 8 usuarios oficiales y el Bote a 0
 async function seedDatabase() {
   try {
     const totalUsuarios = await prisma.usuario.count();
     if (totalUsuarios === 0) {
       const usuariosIniciales = [
-        { nombre: "Jorge", rol: "superadmin", puntos: 20, aciertos: 10, avatarColor: "blue" },
-        { nombre: "Rafa", rol: "user", puntos: 14, aciertos: 7, avatarColor: "emerald" },
-        { nombre: "Miguel", rol: "user", puntos: 11, aciertos: 5, avatarColor: "amber" },
-        { nombre: "Acuña", rol: "user", puntos: 18, aciertos: 9, avatarColor: "indigo" },
-        { nombre: "Andrés", rol: "user", puntos: 12, aciertos: 6, avatarColor: "rose" },
-        { nombre: "Mora", rol: "user", puntos: 15, aciertos: 8, avatarColor: "purple" },
-        { nombre: "Vergara", rol: "user", puntos: 9, aciertos: 4, avatarColor: "cyan" },
-        { nombre: "Ale", rol: "user", puntos: 16, aciertos: 8, avatarColor: "orange" },
+        { nombre: "Jorge", rol: "superadmin", puntos: 0, aciertos: 0, avatarColor: "blue" },
+        { nombre: "Rafa", rol: "user", puntos: 0, aciertos: 0, avatarColor: "emerald" },
+        { nombre: "Miguel", rol: "user", puntos: 0, aciertos: 0, avatarColor: "amber" },
+        { nombre: "Acuña", rol: "user", puntos: 0, aciertos: 0, avatarColor: "indigo" },
+        { nombre: "Andrés", rol: "user", puntos: 0, aciertos: 0, avatarColor: "rose" },
+        { nombre: "Mora", rol: "user", puntos: 0, aciertos: 0, avatarColor: "purple" },
+        { nombre: "Vergara", rol: "user", puntos: 0, aciertos: 0, avatarColor: "cyan" },
+        { nombre: "Ale", rol: "user", puntos: 0, aciertos: 0, avatarColor: "orange" },
       ];
 
       for (const u of usuariosIniciales) {
         await prisma.usuario.create({ data: u });
       }
-      console.log("8 usuarios iniciales creados correctamente (Jorge como superadmin).");
+      console.log("8 usuarios iniciales creados (todos con 0 puntos y 0 aciertos).");
     }
 
     const totalBote = await prisma.bote.count();
     if (totalBote === 0) {
-      const bote = await prisma.bote.create({
+      await prisma.bote.create({
         data: {
-          acumulado: 80.0,
+          acumulado: 0.0,
         },
       });
-
-      await prisma.movimientoBote.create({
-        data: {
-          cantidad: 80.0,
-          concepto: "Fondo inicial de temporada (10€ x 8 amigos)",
-          autor: "Jorge (Superadmin)",
-          boteId: bote.id,
-        },
-      });
-      console.log("Bote inicial de 80.00€ creado correctamente.");
+      console.log("Bote inicial establecido en 0.00€.");
     }
 
     const totalJornadas = await prisma.jornada.count();
@@ -56,6 +47,7 @@ async function seedDatabase() {
         data: {
           numero: 1,
           activa: true,
+          partidos: null,
           resultados: null,
         },
       });
@@ -271,6 +263,32 @@ app.post("/api/bote/ganancia", async (req, res) => {
   }
 });
 
+// Reiniciar bote a 0.00 € (Superadmin)
+app.post("/api/bote/reset", async (_req, res) => {
+  try {
+    let bote = await prisma.bote.findFirst();
+    if (!bote) {
+      bote = await prisma.bote.create({ data: { acumulado: 0.0 } });
+    } else {
+      bote = await prisma.bote.update({
+        where: { id: bote.id },
+        data: { acumulado: 0.0 },
+      });
+    }
+
+    await prisma.movimientoBote.deleteMany();
+
+    res.json({
+      message: "Bote reiniciado a 0.00 € e historial de ganancias vaciado.",
+      bote: { ...bote, acumulado: 0.0, movimientos: [] },
+    });
+  } catch (error) {
+    console.error("Error al reiniciar el bote:", error);
+    res.status(500).json({ error: "No se pudo reiniciar el bote." });
+  }
+});
+
+
 // --- ENDPOINTS CLASIFICACIÓN (Ordenado por Aciertos Totales) ---
 app.get("/api/clasificacion", async (_req, res) => {
   try {
@@ -391,15 +409,6 @@ app.post("/api/jugadas", async (req, res) => {
 });
 
 // --- ENDPOINTS PARTIDOS DE LA JORNADA (OCR Y CONFIGURACIÓN) ---
-const PARTIDOS_DEFECTO = [
-  { id: 1, key: "partido1", numStr: "01", home: "Real Madrid", away: "FC Barcelona", homeCode: "RMA", awayCode: "FCB" },
-  { id: 2, key: "partido2", numStr: "02", home: "Atlético de Madrid", away: "Athletic Club", homeCode: "ATM", awayCode: "ATH" },
-  { id: 3, key: "partido3", numStr: "03", home: "Real Betis", away: "Sevilla FC", homeCode: "BET", awayCode: "SEV" },
-  { id: 4, key: "partido4", numStr: "04", home: "Valencia CF", away: "Villarreal CF", homeCode: "VAL", awayCode: "VIL" },
-  { id: 5, key: "partido5", numStr: "05", home: "Real Sociedad", away: "Girona FC", homeCode: "RSO", awayCode: "GIR" },
-  { id: 6, key: "partido6", numStr: "06", home: "RCD Espanyol", away: "RC Celta de Vigo", homeCode: "ESP", awayCode: "CEL" },
-];
-
 app.get("/api/jornada/partidos", async (_req, res) => {
   try {
     let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
@@ -408,32 +417,63 @@ app.get("/api/jornada/partidos", async (_req, res) => {
         data: {
           numero: 1,
           activa: true,
-          partidos: JSON.stringify(PARTIDOS_DEFECTO),
+          partidos: null,
+          resultados: null,
         },
       });
     }
 
-    let partidos = PARTIDOS_DEFECTO;
+    let partidos = null;
+    let configurado = false;
+
     if (jornada.partidos) {
       try {
         const parsed = JSON.parse(jornada.partidos);
-        if (Array.isArray(parsed) && parsed.length === 6) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === 6 &&
+          parsed.every((p) => p.home && p.home.trim() && p.away && p.away.trim())
+        ) {
           partidos = parsed;
+          configurado = true;
         }
       } catch {
-        partidos = PARTIDOS_DEFECTO;
+        partidos = null;
+        configurado = false;
       }
     }
 
     res.json({
       jornada: jornada.numero,
       activa: jornada.activa,
+      configurado,
       partidos,
       imagenBoleto: jornada.imagenBoleto,
     });
   } catch (error) {
     console.error("Error al obtener partidos:", error);
     res.status(500).json({ error: "No se pudieron obtener los partidos de la jornada." });
+  }
+});
+
+// Resetear partidos de la jornada (Superadmin)
+app.delete("/api/jornada/partidos", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (jornada) {
+      await prisma.jornada.update({
+        where: { id: jornada.id },
+        data: {
+          partidos: null,
+          imagenBoleto: null,
+          resultados: null,
+        },
+      });
+    }
+    res.json({ message: "Partidos de la jornada reseteados a estado inicial (sin configurar)." });
+  } catch (error) {
+    console.error("Error al reiniciar partidos:", error);
+    res.status(500).json({ error: "No se pudieron reiniciar los partidos." });
   }
 });
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Coins, TrendingUp, Users, ArrowUpRight, ShieldCheck, Plus, Calendar, Target, CheckCircle2, Award } from "lucide-react";
 import confetti from "canvas-confetti";
+import { API_URL } from "../config";
 
 export default function BoteView({ bote, onIrAdmin, usuarioActivo, onBoteActualizado }) {
   const [cantidad, setCantidad] = useState("");
@@ -31,7 +32,7 @@ export default function BoteView({ bote, onIrAdmin, usuarioActivo, onBoteActuali
     setMensaje(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/bote/ganancia", {
+      const res = await fetch(`${API_URL}/api/bote/ganancia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

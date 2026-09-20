@@ -8,6 +8,7 @@ import AdminView from "./components/AdminView";
 import LoginView from "./components/LoginView";
 
 const STORAGE_AUTH_KEY = "quini_perico_auth_user";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function App() {
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
@@ -30,7 +31,7 @@ export default function App() {
   // Cargar usuarios
   const cargarUsuarios = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/usuarios");
+      const res = await fetch(`${API_URL}/api/usuarios`);
       if (res.ok) {
         const data = await res.json();
         setUsuarios(data);
@@ -57,7 +58,7 @@ export default function App() {
   // Cargar Bote
   const cargarBote = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/bote");
+      const res = await fetch(`${API_URL}/api/bote`);
       if (res.ok) {
         const data = await res.json();
         setBote(data);
@@ -70,7 +71,7 @@ export default function App() {
   // Cargar Clasificación por aciertos
   const cargarClasificacion = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/clasificacion");
+      const res = await fetch(`${API_URL}/api/clasificacion`);
       if (res.ok) {
         const data = await res.json();
         setClasificacion(data);
@@ -83,7 +84,7 @@ export default function App() {
   // Cargar Partidos oficiales de la jornada (extraídos con OCR o por defecto)
   const cargarPartidos = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/jornada/partidos");
+      const res = await fetch(`${API_URL}/api/jornada/partidos`);
       if (res.ok) {
         const data = await res.json();
         if (data?.partidos) {
@@ -137,7 +138,7 @@ export default function App() {
   // Sumar rápido al bote desde la vista de bote
   const sumarBoteRapido = async (cantidad, concepto) => {
     try {
-      const res = await fetch("http://localhost:3001/api/bote/sumar", {
+      const res = await fetch(`${API_URL}/api/bote/sumar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,6 +182,7 @@ export default function App() {
           <BoletoView
             usuarioActivo={usuarioActivo}
             partidos={partidos}
+            onIrAdmin={() => setSeccionActiva("admin")}
             onJugadaConfirmada={() => {
               cargarUsuarios();
               cargarClasificacion();

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { createWorker } from "tesseract.js";
+import { API_URL } from "../config";
 
 // Equipos comunes del fútbol español para enriquecer y emparejar texto OCR
 const EQUIPOS_CONOCIDOS = [
@@ -50,18 +51,18 @@ export default function AdminView({
   const [textoExtraidoRaw, setTextoExtraidoRaw] = useState("");
   const [mostrarTextoRaw, setMostrarTextoRaw] = useState(false);
 
-  // 6 Partidos de la Jornada
+  // 6 Partidos de la Jornada (Vacíos hasta que Jorge los introduzca)
   const [partidosEditables, setPartidosEditables] = useState(() => {
     if (partidosActuales && partidosActuales.length === 6) {
       return partidosActuales;
     }
     return [
-      { id: 1, key: "partido1", numStr: "01", home: "Real Madrid", away: "FC Barcelona" },
-      { id: 2, key: "partido2", numStr: "02", home: "Atlético de Madrid", away: "Athletic Club" },
-      { id: 3, key: "partido3", numStr: "03", home: "Real Betis", away: "Sevilla FC" },
-      { id: 4, key: "partido4", numStr: "04", home: "Valencia CF", away: "Villarreal CF" },
-      { id: 5, key: "partido5", numStr: "05", home: "Real Sociedad", away: "Girona FC" },
-      { id: 6, key: "partido6", numStr: "06", home: "RCD Espanyol", away: "RC Celta de Vigo" },
+      { id: 1, key: "partido1", numStr: "01", home: "", away: "" },
+      { id: 2, key: "partido2", numStr: "02", home: "", away: "" },
+      { id: 3, key: "partido3", numStr: "03", home: "", away: "" },
+      { id: 4, key: "partido4", numStr: "04", home: "", away: "" },
+      { id: 5, key: "partido5", numStr: "05", home: "", away: "" },
+      { id: 6, key: "partido6", numStr: "06", home: "", away: "" },
     ];
   });
 
@@ -246,7 +247,7 @@ export default function AdminView({
     setMensajePartidos(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/jornada/partidos", {
+      const res = await fetch(`${API_URL}/api/jornada/partidos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -291,7 +292,7 @@ export default function AdminView({
     setMensajeBote(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/bote/sumar", {
+      const res = await fetch(`${API_URL}/api/bote/sumar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -308,6 +309,77 @@ export default function AdminView({
       setCantidad("");
       setConcepto("");
 
+      if (onBoteActualizado) onBoteActualizado();
+    } catch (err) {
+      setMensajeBote({ tipo: "error", texto: err.message });
+    } finally {
+      setGuardandoBote(false);
+    }
+  };
+
+  // Resetear partidos a estado inicial (sin configurar)
+  const reiniciarPartidos = async () => {
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas eliminar los partidos de esta jornada? El boleto volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
+      )
+    ) {
+      return;
+    }
+    setGuardandoPartidos(true);
+    setMensajePartidos(null);
+    try {
+      const res = await fetch(`${API_URL}/api/jornada/partidos`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const partidosVacios = [
+        { id: 1, key: "partido1", numStr: "01", home: "", away: "" },
+        { id: 2, key: "partido2", numStr: "02", home: "", away: "" },
+        { id: 3, key: "partido3", numStr: "03", home: "", away: "" },
+        { id: 4, key: "partido4", numStr: "04", home: "", away: "" },
+        { id: 5, key: "partido5", numStr: "05", home: "", away: "" },
+        { id: 6, key: "partido6", numStr: "06", home: "", away: "" },
+      ];
+      setPartidosEditables(partidosVacios);
+      setImagenPreview(null);
+      setTextoExtraidoRaw("");
+      setMensajePartidos({
+        tipo: "success",
+        texto: "Partidos eliminados. El boleto vuelve al estado 'sin quinigol disponible'.",
+      });
+      if (onPartidosActualizados) onPartidosActualizados(null);
+    } catch (err) {
+      setMensajePartidos({ tipo: "error", texto: err.message });
+    } finally {
+      setGuardandoPartidos(false);
+    }
+  };
+
+  // Resetear bote acumulado a 0.00 €
+  const reiniciarBoteACero = async () => {
+    if (
+      !window.confirm(
+        "¿Seguro que deseas poner el bote a 0.00 € y borrar todo el historial de ganancias?"
+      )
+    ) {
+      return;
+    }
+    setGuardandoBote(true);
+    setMensajeBote(null);
+    try {
+      const res = await fetch(`${API_URL}/api/bote/reset`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMensajeBote({
+        tipo: "success",
+        texto: "Bote reiniciado a 0.00 € e historial de ganancias vaciado.",
+      });
       if (onBoteActualizado) onBoteActualizado();
     } catch (err) {
       setMensajeBote({ tipo: "error", texto: err.message });
@@ -512,7 +584,7 @@ export default function AdminView({
 
           {/* Botón Guardar Partidos de la Jornada */}
           <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
-            {textoExtraidoRaw && (
+            {textoExtraidoRaw ? (
               <button
                 type="button"
                 onClick={() => setMostrarTextoRaw(!mostrarTextoRaw)}
@@ -520,18 +592,32 @@ export default function AdminView({
               >
                 {mostrarTextoRaw ? "Ocultar texto OCR en bruto" : "Ver texto OCR reconocido"}
               </button>
+            ) : (
+              <span className="text-xs text-slate-500">Introduce los nombres de los 6 enfrentamientos</span>
             )}
 
-            <button
-              type="button"
-              id="btn-guardar-partidos-ocr"
-              disabled={guardandoPartidos}
-              onClick={guardarPartidosEnServidor}
-              className="ml-auto px-6 py-3.5 rounded-xl bg-emerald-600 border border-emerald-400/40 text-white font-black text-xs tracking-wider uppercase shadow-xl hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
-            >
-              <Save size={16} />
-              <span>{guardandoPartidos ? "Guardando..." : "Guardar y Aplicar Partidos de la Jornada"}</span>
-            </button>
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                type="button"
+                onClick={reiniciarPartidos}
+                disabled={guardandoPartidos}
+                className="px-4 py-3.5 rounded-xl bg-red-950/60 border border-red-500/30 text-red-300 hover:bg-black hover:text-white transition-all text-xs font-bold flex items-center gap-2 cursor-pointer hover-black-btn disabled:opacity-50"
+              >
+                <RotateCcw size={14} />
+                <span>Vaciar Partidos</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-guardar-partidos-ocr"
+                disabled={guardandoPartidos}
+                onClick={guardarPartidosEnServidor}
+                className="px-6 py-3.5 rounded-xl bg-emerald-600 border border-emerald-400/40 text-white font-black text-xs tracking-wider uppercase shadow-xl hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+              >
+                <Save size={16} />
+                <span>{guardandoPartidos ? "Guardando..." : "Guardar y Aplicar Partidos"}</span>
+              </button>
+            </div>
           </div>
 
           {/* Desglose texto crudo OCR si se solicita */}
@@ -543,57 +629,31 @@ export default function AdminView({
         </div>
       </div>
 
-      {/* SECCIÓN 2: INYECCIÓN RÁPIDA DE FONDOS AL BOTE */}
+      {/* SECCIÓN 2: GESTIÓN DEL BOTE POR JORGE (SIN DATOS DE EJEMPLO) */}
       <div className="apple-card-opaque rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/12">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 border border-white/20">
-            <Coins size={24} />
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 border border-white/20">
+              <Coins size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white tracking-tight">
+                Gestión del Bote por Jorge
+              </h3>
+              <p className="text-xs text-slate-400">
+                Añade fondos o ganancias directamente al bote acumulado de la peña
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-black text-white tracking-tight">
-              Aportación al Bote por Jorge
-            </h3>
-            <p className="text-xs text-slate-400">
-              Añade fondos extraordinarios al bote acumulado de la peña
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <button
-            type="button"
-            onClick={() => sumarBote(40, "Aportación mensual (5€ x 8 amigos)")}
-            className="p-4 rounded-2xl apple-card-inner hover:bg-black border border-white/10 text-left transition-all cursor-pointer hover-black-btn"
-          >
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-              Fondo Rápido
-            </span>
-            <p className="text-xl font-black text-white mt-1">+40.00 €</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">5€ por cada uno de los 8</p>
-          </button>
 
           <button
             type="button"
-            onClick={() => sumarBote(80, "Cuota de temporada (10€ x 8 amigos)")}
-            className="p-4 rounded-2xl apple-card-inner hover:bg-black border border-white/10 text-left transition-all cursor-pointer hover-black-btn"
+            onClick={reiniciarBoteACero}
+            disabled={guardandoBote}
+            className="px-4 py-2.5 rounded-xl bg-red-950/70 border border-red-500/30 text-red-300 hover:bg-black hover:text-white transition-all text-xs font-bold flex items-center gap-2 cursor-pointer hover-black-btn disabled:opacity-50"
           >
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-              Cuota Completa
-            </span>
-            <p className="text-xl font-black text-white mt-1">+80.00 €</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">10€ por cada uno de los 8</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => sumarBote(120, "Premio extra de la jornada")}
-            className="p-4 rounded-2xl apple-card-inner hover:bg-black border border-white/10 text-left transition-all cursor-pointer hover-black-btn"
-          >
-            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">
-              Premio Extra
-            </span>
-            <p className="text-xl font-black text-white mt-1">+120.00 €</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Bono especial</p>
+            <RotateCcw size={14} />
+            <span>Poner Bote a 0.00 €</span>
           </button>
         </div>
 
@@ -609,6 +669,60 @@ export default function AdminView({
             <span>{mensajeBote.texto}</span>
           </div>
         )}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            sumarBote(cantidad, concepto);
+          }}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                Importe a Añadir (€) *
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Introduce cantidad"
+                  value={cantidad}
+                  onChange={(e) => setCantidad(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-sm font-mono font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                />
+                <span className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">
+                  €
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                Concepto / Motivo
+              </label>
+              <input
+                type="text"
+                placeholder="Aportación, bote acumulado, etc."
+                value={concepto}
+                onChange={(e) => setConcepto(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={guardandoBote || !cantidad}
+              className="px-6 py-3 rounded-xl bg-amber-600 border border-amber-400/40 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-600/30 hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+            >
+              <Plus size={15} />
+              <span>{guardandoBote ? "Añadiendo..." : "Añadir Fondos al Bote"}</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -11,24 +11,17 @@ import {
   Send,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-
-const MATCHES_FALLBACK = [
-  { id: 1, key: "partido1", numStr: "01", home: "Real Madrid", away: "FC Barcelona" },
-  { id: 2, key: "partido2", numStr: "02", home: "Atlético de Madrid", away: "Athletic Club" },
-  { id: 3, key: "partido3", numStr: "03", home: "Real Betis", away: "Sevilla FC" },
-  { id: 4, key: "partido4", numStr: "04", home: "Valencia CF", away: "Villarreal CF" },
-  { id: 5, key: "partido5", numStr: "05", home: "Real Sociedad", away: "Girona FC" },
-  { id: 6, key: "partido6", numStr: "06", home: "RCD Espanyol", away: "RC Celta de Vigo" },
-];
+import { API_URL } from "../config";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
 export default function ResultadosView({
   usuarioActivo,
   onResultadosGuardados,
-  partidos = [],
+  partidos = null,
 }) {
-  const matchesList = partidos && partidos.length === 6 ? partidos : MATCHES_FALLBACK;
+  const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
+  const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
 
   const [resultados, setResultados] = useState({
     partido1: { local: null, visitante: null },
@@ -46,11 +39,9 @@ export default function ResultadosView({
   const [tipoMensaje, setTipoMensaje] = useState("info");
   const [desglose, setDesglose] = useState(null);
 
-  const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
-
   const cargarResultados = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/resultados");
+      const res = await fetch(`${API_URL}/api/resultados`);
       const data = await res.json();
       setDisponible(Boolean(data?.disponible));
       if (data?.resultados) {
@@ -67,6 +58,116 @@ export default function ResultadosView({
     cargarResultados();
   }, []);
 
+  if (cargando) {
+    return (
+      <div className="py-20 text-center text-sm text-slate-400">
+        Cargando estado de la jornada...
+      </div>
+    );
+  }
+
+  // CASO 1: NO HAY PARTIDOS CONFIGURADOS EN LA JORNADA
+  if (!hayPartidos) {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
+        <div className="apple-card-opaque rounded-3xl p-10 sm:p-12 shadow-2xl border border-white/12 flex flex-col items-center text-white">
+          <div className="w-16 h-16 rounded-3xl bg-black/60 border border-white/10 text-slate-400 flex items-center justify-center mb-5 shadow-inner">
+            <Clock size={32} />
+          </div>
+
+          <h2 className="text-2xl font-black tracking-tight text-white">
+            Aún no hay ningún quinigol disponible
+          </h2>
+
+          <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
+            {esJorge
+              ? "Primero debes introducir los partidos de la jornada en el Panel Superadmin."
+              : "Jorge aún no ha configurado los partidos de esta jornada."}
+          </p>
+
+          <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
+            Jornada sin partidos
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CASO 2: NO ES JORGE Y AÚN NO SE HAN PUBLICADO RESULTADOS
+  if (!esJorge && !disponible) {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
+        <div className="apple-card-opaque rounded-3xl p-10 sm:p-12 shadow-2xl border border-white/12 flex flex-col items-center text-white">
+          <div className="w-16 h-16 rounded-3xl bg-black/60 border border-white/10 text-slate-400 flex items-center justify-center mb-5 shadow-inner">
+            <Clock size={32} />
+          </div>
+
+          <h2 className="text-2xl font-black tracking-tight text-white">
+            Aún no hay ningún quinigol disponible
+          </h2>
+
+          <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
+            Jorge aún no ha introducido los resultados oficiales de los partidos de esta jornada. Vuelve a consultar una vez finalicen los encuentros.
+          </p>
+
+          <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
+            Jornada en espera de escrutinio
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CASO 3: NO ES JORGE PERO SÍ HAY RESULTADOS DISPONIBLES (MODO LECTURA)
+  if (!esJorge && disponible) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-1.5 border border-emerald-500/30">
+              <CheckCircle2 size={14} className="text-emerald-400" /> Resultados Oficiales
+            </div>
+            <h2 className="text-3xl font-black tracking-tight text-white">
+              Resultados de la Jornada
+            </h2>
+            <p className="text-sm text-slate-400">
+              Marcadores oficiales publicados por Jorge (Superadmin)
+            </p>
+          </div>
+        </div>
+
+        <div className="apple-card-opaque rounded-3xl shadow-xl border border-white/12 overflow-hidden divide-y divide-white/10">
+          {partidos.map((partido, idx) => {
+            const res = resultados[partido.key] || { local: "-", visitante: "-" };
+            return (
+              <div key={partido.id || idx} className="p-5 flex items-center justify-between gap-4 hover-black-card">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 rounded-lg bg-black text-blue-400 font-mono font-black text-xs border border-white/10">
+                    PARTIDO {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <span className="text-sm font-black text-white">
+                      {partido.home} vs {partido.away}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 px-4 py-2 rounded-xl bg-black/60 border border-white/15 font-mono font-black text-base text-white shadow-inner">
+                    <span className="text-blue-400">{res.local || "-"}</span>
+                    <span className="text-slate-500">-</span>
+                    <span className="text-indigo-400">{res.visitante || "-"}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // CASO 4: ES JORGE (SUPERADMIN) - INTRODUCIR RESULTADOS DE LOS PARTIDOS QUE ÉL CONFIGURÓ
   const seleccionarGol = (partidoKey, equipo, gol) => {
     setResultados((prev) => ({
       ...prev,
@@ -78,10 +179,9 @@ export default function ResultadosView({
     setMensaje(null);
   };
 
-  // Autocompletar al azar para agilizar
   const autocompletarResultados = () => {
     const auto = {};
-    matchesList.forEach((p) => {
+    partidos.forEach((p) => {
       auto[p.key] = {
         local: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
         visitante: GOAL_OPTIONS[Math.floor(Math.random() * GOAL_OPTIONS.length)],
@@ -100,7 +200,7 @@ export default function ResultadosView({
 
   const limpiar = () => {
     const vacio = {};
-    matchesList.forEach((p) => {
+    partidos.forEach((p) => {
       vacio[p.key] = { local: null, visitante: null };
     });
     setResultados(vacio);
@@ -113,7 +213,7 @@ export default function ResultadosView({
       return;
     }
     try {
-      await fetch("http://localhost:3001/api/resultados", { method: "DELETE" });
+      await fetch(`${API_URL}/api/resultados`, { method: "DELETE" });
       setDisponible(false);
       limpiar();
       setTipoMensaje("info");
@@ -135,7 +235,7 @@ export default function ResultadosView({
     setMensaje(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/resultados", {
+      const res = await fetch(`${API_URL}/api/resultados`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resultados }),
@@ -166,90 +266,6 @@ export default function ResultadosView({
     }
   };
 
-  if (cargando) {
-    return (
-      <div className="py-20 text-center text-sm text-slate-400">
-        Cargando estado de la jornada...
-      </div>
-    );
-  }
-
-  // CASO 1: NO ES JORGE Y AÚN NO SE HAN INTRODUCIDO RESULTADOS
-  // Requisito exacto: "cuando no las introduzca a los demas no le aparecera nada solo un mensaje de que aun no hay ningun quinigol disponible"
-  if (!esJorge && !disponible) {
-    return (
-      <div className="max-w-xl mx-auto py-16 px-4 text-center animate-in fade-in duration-300">
-        <div className="apple-card-opaque rounded-3xl p-10 sm:p-12 shadow-2xl border border-white/12 flex flex-col items-center text-white">
-          <div className="w-16 h-16 rounded-3xl bg-black/60 border border-white/10 text-slate-400 flex items-center justify-center mb-5 shadow-inner">
-            <Clock size={32} />
-          </div>
-
-          <h2 className="text-2xl font-black tracking-tight text-white">
-            Aún no hay ningún quinigol disponible
-          </h2>
-
-          <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
-            Jorge aún no ha introducido los resultados oficiales de los partidos de esta jornada. Vuelve a consultar una vez finalicen los encuentros.
-          </p>
-
-          <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
-            Jornada en espera de escrutinio
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // CASO 2: NO ES JORGE PERO SÍ HAY RESULTADOS DISPONIBLES (MODO LECTURA)
-  if (!esJorge && disponible) {
-    return (
-      <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-1.5 border border-emerald-500/30">
-              <CheckCircle2 size={14} className="text-emerald-400" /> Resultados Oficiales
-            </div>
-            <h2 className="text-3xl font-black tracking-tight text-white">
-              Resultados de la Jornada
-            </h2>
-            <p className="text-sm text-slate-400">
-              Marcadores oficiales publicados por Jorge (Superadmin)
-            </p>
-          </div>
-        </div>
-
-        <div className="apple-card-opaque rounded-3xl shadow-xl border border-white/12 overflow-hidden divide-y divide-white/10">
-          {matchesList.map((partido, idx) => {
-            const res = resultados[partido.key] || { local: "-", visitante: "-" };
-            return (
-              <div key={partido.id || idx} className="p-5 flex items-center justify-between gap-4 hover-black-card">
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 rounded-lg bg-black text-blue-400 font-mono font-black text-xs border border-white/10">
-                    PARTIDO {String(idx + 1).padStart(2, "0")}
-                  </span>
-                  <div>
-                    <span className="text-sm font-black text-white">
-                      {partido.home} vs {partido.away}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 px-4 py-2 rounded-xl bg-black/60 border border-white/15 font-mono font-black text-base text-white shadow-inner">
-                    <span className="text-blue-400">{res.local || "-"}</span>
-                    <span className="text-slate-500">-</span>
-                    <span className="text-indigo-400">{res.visitante || "-"}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // CASO 3: ES JORGE (SUPERADMIN) - PANEL DE INTRODUCCIÓN Y PUBLICACIÓN
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in duration-300">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -309,7 +325,7 @@ export default function ResultadosView({
 
       {/* Grid de los 6 Partidos para entrada de resultados */}
       <div className="space-y-4">
-        {matchesList.map((partido, idx) => {
+        {partidos.map((partido, idx) => {
           const res = resultados[partido.key] || { local: null, visitante: null };
 
           return (

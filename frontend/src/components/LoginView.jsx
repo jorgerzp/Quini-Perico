@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Lock, Eye, EyeOff, ArrowRight, User, AlertCircle, Sparkles } from "lucide-react";
 import confetti from "canvas-confetti";
+import { API_URL } from "../config";
 
 export default function LoginView({ onLoginSuccess }) {
   const [nombre, setNombre] = useState("");
@@ -27,7 +28,7 @@ export default function LoginView({ onLoginSuccess }) {
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/login", {
+      const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
