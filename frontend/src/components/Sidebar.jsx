@@ -90,13 +90,13 @@ export default function Sidebar({
       {menuMovilAbierto && (
         <div
           onClick={() => setMenuMovilAbierto(false)}
-          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity"
+          className="lg:hidden fixed inset-0 bg-slate-900/20 backdrop-blur-md z-30 transition-opacity"
         />
       )}
 
-      {/* Sidebar Lateral Opaco Apple Dark */}
+      {/* Sidebar Lateral Apple Frosted Glass */}
       <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen z-40 w-72 apple-glass-dark flex flex-col justify-between overflow-y-auto transition-transform duration-300 shrink-0 ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen z-40 w-72 apple-glass-sidebar bg-white/45 backdrop-blur-2xl border-r border-white/60 shadow-[4px_0_32px_0_rgba(31,38,135,0.04)] flex flex-col justify-between overflow-y-auto transition-transform duration-300 shrink-0 ${
           menuMovilAbierto ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -113,57 +113,57 @@ export default function Sidebar({
 
           {/* Logo y Nombre de la Peña */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex items-center justify-center font-black tracking-tight text-base shadow-lg shadow-blue-500/25 border border-white/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 via-gray-800 to-slate-950 text-white flex items-center justify-center font-black tracking-tight text-base shadow-sm border border-white/30">
               QP
             </div>
             <div>
-              <h1 className="text-sm font-black tracking-tight text-white leading-tight">
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">
                 QUINI-PERICO
               </h1>
-              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Peña Quinigol Pro
               </span>
             </div>
           </div>
 
-          {/* Tarjeta de Perfil Estática (Sin desplegable, estilo Apple opaco) */}
-          <div className="mb-6 p-3 rounded-2xl bg-slate-900/80 border border-white/10 shadow-inner flex items-center justify-between">
+          {/* Tarjeta de Perfil Frosted Glass */}
+          <div className="mb-6 p-3 rounded-2xl bg-white/40 border border-white/70 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shadow-md shrink-0 ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shadow-xs shrink-0 ${
                   esSuperAdmin
-                    ? "bg-gradient-to-tr from-blue-600 to-indigo-500 ring-2 ring-blue-400/40"
-                    : "bg-slate-700 ring-1 ring-white/10"
+                    ? "bg-gradient-to-tr from-slate-900 to-gray-800 ring-2 ring-slate-400/30"
+                    : "bg-slate-700 ring-1 ring-white/20"
                 }`}
               >
                 {usuarioActivo?.nombre ? usuarioActivo.nombre.substring(0, 2).toUpperCase() : "U"}
               </div>
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-white truncate">
+                  <span className="text-xs font-black text-slate-900 truncate">
                     {esSuperAdmin ? `ADMIN: ${nombreFormateado}` : nombreFormateado}
                   </span>
                   {esSuperAdmin && (
-                    <Crown size={11} className="text-amber-400 fill-amber-400 shrink-0" />
+                    <Crown size={11} className="text-amber-500 fill-amber-500 shrink-0" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium">
+                <p className="text-[10px] text-slate-500 font-medium">
                   {usuarioActivo?.aciertos ?? 0} aciertos · {usuarioActivo?.puntos ?? 0} pts
                 </p>
               </div>
             </div>
             {esSuperAdmin ? (
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-400/30 uppercase tracking-wider">
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-900 text-white font-bold uppercase tracking-wider shadow-2xs">
                 Jorge
               </span>
             ) : (
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-medium border border-white/10">
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-black/5 text-slate-600 font-medium border border-black/5">
                 Miembro
               </span>
             )}
           </div>
 
-          {/* Menú de Navegación con hover en Negro Profundo */}
+          {/* Menú de Navegación Frosted Glass */}
           <nav className="space-y-1.5">
             {elementosMenu.map((elem) => {
               const Icono = elem.icono;
@@ -175,26 +175,26 @@ export default function Sidebar({
                   type="button"
                   id={`nav-${elem.id}`}
                   onClick={() => seleccionarYcerrar(elem.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer border ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border ${
                     activo
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 border-blue-400/40"
-                      : "text-slate-300 bg-transparent border-transparent hover:bg-black hover:text-white hover:border-white/20"
+                      ? "bg-white/90 text-slate-950 shadow-[0_4px_16px_0_rgba(0,0,0,0.06)] border-white font-black"
+                      : "text-slate-600 bg-transparent border-transparent hover:bg-white/50 hover:text-slate-900 hover:border-white/70"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <Icono
                       size={16}
-                      className={activo ? "text-white" : "text-slate-400"}
+                      className={activo ? "text-slate-900" : "text-slate-400"}
                     />
                     <span>{elem.nombre}</span>
                   </div>
 
                   {elem.badge && (
                     <span
-                      className={`text-[11px] px-2 py-0.5 rounded-md ${
+                      className={`text-[11px] px-2 py-0.5 rounded-lg transition-all ${
                         activo
-                          ? "bg-white/20 text-white font-bold"
-                          : elem.badgeColor || "bg-white/10 text-slate-300"
+                          ? "bg-slate-900 text-white font-bold shadow-2xs"
+                          : "bg-black/5 text-slate-600 border border-black/5 font-bold"
                       }`}
                     >
                       {elem.badge}
@@ -208,36 +208,36 @@ export default function Sidebar({
 
         {/* Widget Inferior de Bote y Cerrar Sesión */}
         <div className="p-4 m-4 space-y-2">
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg">
+          <div className="p-4 rounded-2xl bg-white/45 backdrop-blur-xl border border-white/70 shadow-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <Coins size={12} className="text-amber-400" /> Bote Quinigol
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <Coins size={12} className="text-amber-500" /> Bote Quinigol
               </span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase tracking-wide">
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/25 font-bold uppercase tracking-wide">
                 En Vivo
               </span>
             </div>
-            <p className="text-2xl font-black text-white tracking-tight font-mono">
+            <p className="text-2xl font-black text-slate-900 tracking-tight font-mono">
               {boteTotal.toFixed(2)}{" "}
-              <span className="text-xs font-semibold text-slate-400">EUR</span>
+              <span className="text-xs font-semibold text-slate-500">EUR</span>
             </p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[10px] text-slate-500 mt-0.5">
               8 miembros • {(boteTotal / 8).toFixed(2)} € por cabeza
             </p>
           </div>
 
-          {/* Botón Cerrar Sesión (Presente para todos) */}
+          {/* Botón Cerrar Sesión */}
           <button
             type="button"
             id="btn-logout"
             onClick={onLogout}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-red-400 hover:bg-black border border-transparent hover:border-red-500/30 transition-all cursor-pointer shadow-sm hover-black-btn"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-white/60 border border-transparent hover:border-red-500/20 transition-all duration-200 cursor-pointer shadow-2xs"
           >
             <div className="flex items-center gap-2">
               <LogOut size={15} />
               <span>Cerrar Sesión</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono">Salir</span>
+            <span className="text-[10px] text-slate-400 font-mono">Salir</span>
           </button>
         </div>
       </aside>

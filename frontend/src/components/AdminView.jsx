@@ -109,12 +109,12 @@ export default function AdminView({
   if (!esJorge) {
     return (
       <div className="max-w-md mx-auto py-20 px-4 text-center">
-        <div className="apple-card-opaque rounded-3xl p-10 border border-red-500/30">
-          <div className="w-14 h-14 rounded-2xl bg-red-950/80 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-10 border border-red-200 text-slate-800 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center mx-auto mb-4 shadow-xs">
             <AlertCircle size={28} />
           </div>
-          <h2 className="text-xl font-black text-white">Acceso Restringido</h2>
-          <p className="text-sm text-slate-400 mt-2">
+          <h2 className="text-xl font-black text-slate-900">Acceso Restringido</h2>
+          <p className="text-sm text-slate-500 mt-2">
             El panel Superadmin solo está habilitado para Jorge.
           </p>
         </div>
@@ -626,17 +626,17 @@ function preprocessImage(imageSrc, mode = "auto") {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-in fade-in duration-300 text-slate-800">
       {/* Header Superadmin */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-black tracking-wider uppercase mb-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/20 text-xs font-black tracking-wider uppercase mb-2">
             <ShieldCheck size={14} /> Panel Superadmin Jorge
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
             Control Maestro de la Jornada
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Escaneo OCR de fotos oficiales de boletos, partidos y gestión del bote
           </p>
         </div>
@@ -644,7 +644,7 @@ function preprocessImage(imageSrc, mode = "auto") {
         <button
           type="button"
           onClick={onIrResultados}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 border border-white/20 text-xs font-black text-white hover:bg-black transition-all cursor-pointer flex items-center gap-2 shadow-md hover-black-btn"
+          className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-black text-xs font-bold text-white transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 shadow-md"
         >
           <span>Poner Resultados Oficiales</span>
           <ArrowRight size={14} />
@@ -652,25 +652,25 @@ function preprocessImage(imageSrc, mode = "auto") {
       </div>
 
       {/* CONTROL OFICIAL DE NÚMERO DE JORNADA */}
-      <div className="apple-card-opaque rounded-3xl p-6 sm:p-7 border border-white/12 shadow-2xl flex flex-wrap items-center justify-between gap-5">
+      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-7 border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] flex flex-wrap items-center justify-between gap-5">
         <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center font-mono shadow-lg shadow-blue-500/25 border border-white/20">
-            <span className="text-[10px] font-bold text-blue-200 uppercase leading-none">JORNADA</span>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 to-gray-800 text-white flex flex-col items-center justify-center font-mono shadow-md border border-white/30">
+            <span className="text-[10px] font-bold text-slate-300 uppercase leading-none">JORNADA</span>
             <span className="text-2xl font-black leading-none mt-0.5">{jornadaInput}</span>
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-black uppercase tracking-wider text-blue-400">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-600">
                 Jornada Oficial en Curso
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/25 text-[10px] font-bold">
                 Jornada {jornadaInput}
               </span>
             </div>
-            <h3 className="text-xl font-black text-white">
+            <h3 className="text-xl font-black text-slate-900">
               Edición y Número de la Jornada
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Actualmente se muestra la <strong>Jornada {jornadaInput}</strong> a toda la peña. Puedes cambiarla o avanzar a la siguiente cuando toque.
             </p>
           </div>
@@ -681,25 +681,25 @@ function preprocessImage(imageSrc, mode = "auto") {
             type="button"
             disabled={guardandoJornada}
             onClick={() => guardarNumeroJornada(Number(jornadaInput) + 1)}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 border border-white/20 text-xs font-bold text-white hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+            className="px-4 py-2.5 rounded-2xl bg-white/60 hover:bg-white border border-white/80 text-xs font-bold text-slate-800 transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
           >
             <span>+1 Avanzar a Jornada {Number(jornadaInput) + 1}</span>
           </button>
 
-          <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/15">
-            <span className="text-xs text-slate-400 font-bold">Nº:</span>
+          <div className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-2xl border border-white/80 shadow-xs">
+            <span className="text-xs text-slate-500 font-bold">Nº:</span>
             <input
               type="number"
               min="1"
               value={jornadaInput}
               onChange={(e) => setJornadaInput(e.target.value)}
-              className="w-16 px-2 py-1 rounded-lg bg-black text-white text-xs font-mono font-bold text-center border border-white/15 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-16 px-2 py-1 rounded-xl bg-white text-slate-900 text-xs font-mono font-bold text-center border border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-900"
             />
             <button
               type="button"
               disabled={guardandoJornada}
               onClick={() => guardarNumeroJornada(jornadaInput)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-black transition-all cursor-pointer hover-black-btn disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black transition-all cursor-pointer disabled:opacity-50"
             >
               {guardandoJornada ? "Guardando..." : "Fijar"}
             </button>
@@ -708,10 +708,10 @@ function preprocessImage(imageSrc, mode = "auto") {
 
         {mensajeJornada && (
           <div
-            className={`w-full p-3 rounded-xl text-xs font-bold flex items-center gap-2 border animate-in fade-in duration-200 ${
+            className={`w-full p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 border animate-in fade-in duration-200 shadow-xs ${
               mensajeJornada.tipo === "success"
-                ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-300"
-                : "bg-red-950/80 border-red-500/40 text-red-300"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
             }`}
           >
             <CheckCircle2 size={15} />
@@ -721,17 +721,17 @@ function preprocessImage(imageSrc, mode = "auto") {
       </div>
 
       {/* SECCIÓN 1: ESCÁNER OCR DE FOTO DE LA JORNADA */}
-      <div className="apple-card-opaque rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/12">
+      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/60">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 border border-white/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-gray-800 flex items-center justify-center text-white shadow-xs border border-white/30">
               <Scan size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white tracking-tight">
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">
                 Escáner OCR: Foto de la Jornada {jornadaInput}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Sube la foto del boleto o calendario y el OCR extraerá los 6 partidos y los rellenará abajo para que puedas confirmarlos antes de guardar
               </p>
             </div>
@@ -743,7 +743,7 @@ function preprocessImage(imageSrc, mode = "auto") {
           {/* Uploader */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-white/20 hover:border-blue-400/60 rounded-3xl p-8 text-center cursor-pointer transition-all bg-black/40 hover:bg-black/60 group flex flex-col items-center justify-center min-h-[220px]"
+            className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-3xl p-8 text-center cursor-pointer transition-all bg-white/20 hover:bg-white/40 group flex flex-col items-center justify-center min-h-[220px]"
           >
             <input
               ref={fileInputRef}
@@ -753,31 +753,31 @@ function preprocessImage(imageSrc, mode = "auto") {
               onChange={manejarSeleccionImagen}
             />
 
-            <div className="w-14 h-14 rounded-2xl bg-white/10 group-hover:bg-blue-600/30 flex items-center justify-center text-slate-300 group-hover:text-blue-300 transition-colors mb-3 border border-white/10">
+            <div className="w-14 h-14 rounded-2xl bg-white/80 group-hover:bg-white flex items-center justify-center text-slate-600 group-hover:text-slate-900 transition-colors mb-3 border border-white/60 shadow-xs">
               <Upload size={24} />
             </div>
 
-            <p className="text-sm font-bold text-white group-hover:text-blue-200">
+            <p className="text-sm font-bold text-slate-800 group-hover:text-slate-950">
               Arrastra o haz clic para subir foto del boleto
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               JPG, PNG o foto tomada con la cámara
             </p>
           </div>
 
           {/* Preview y Acción de Escaneo */}
-          <div className="apple-card-inner rounded-3xl p-5 border border-white/10 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
+          <div className="apple-card-inner bg-white/25 backdrop-blur-md rounded-3xl p-5 border border-white/60 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
             {imagenPreview ? (
               <div className="w-full space-y-4">
-                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-white/20 shadow-md">
+                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-white/60 shadow-xs">
                   <img
                     src={imagenPreview}
                     alt="Foto Jornada"
                     className="w-full h-full object-cover"
                   />
                   {procesandoOcr && (
-                    <div className="absolute inset-0 bg-blue-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4">
-                      <div className="w-8 h-8 border-3 border-blue-400 border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <div className="absolute inset-0 bg-white/85 backdrop-blur-xs flex flex-col items-center justify-center text-slate-800 p-4">
+                      <div className="w-8 h-8 border-3 border-slate-800 border-t-transparent rounded-full animate-spin mb-3"></div>
                       <p className="text-xs font-bold text-center">{estadoOcrTexto}</p>
                     </div>
                   )}
@@ -788,7 +788,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                     type="button"
                     disabled={procesandoOcr}
                     onClick={ejecutarOcr}
-                    className="flex-1 py-3 px-4 rounded-xl bg-blue-600 border border-blue-400/30 text-white text-xs font-black tracking-wide shadow-lg hover:bg-black transition-all cursor-pointer flex items-center justify-center gap-2 hover-black-btn disabled:opacity-50"
+                    className="flex-1 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-black text-white text-xs font-bold tracking-wide shadow-md transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <Sparkles size={15} />
                     <span>{procesandoOcr ? "Analizando OCR..." : "Escanear Foto con OCR"}</span>
@@ -800,7 +800,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                       setImagenPreview(null);
                       setTextoExtraidoRaw("");
                     }}
-                    className="p-3 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-white hover:bg-black transition cursor-pointer"
+                    className="p-3 rounded-2xl bg-white/60 hover:bg-white border border-white/80 text-slate-500 hover:text-slate-800 transition cursor-pointer shadow-xs"
                     title="Quitar foto"
                   >
                     <RotateCcw size={15} />
@@ -808,7 +808,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                 </div>
               </div>
             ) : (
-              <div className="text-center p-6 text-slate-500">
+              <div className="text-center p-6 text-slate-400">
                 <Camera size={36} className="mx-auto mb-2 opacity-50 text-slate-400" />
                 <p className="text-xs font-medium text-slate-400">
                   Aún no has seleccionado ninguna imagen.
@@ -821,34 +821,34 @@ function preprocessImage(imageSrc, mode = "auto") {
         {/* Mensaje de estado OCR */}
         {mensajePartidos && (
           <div
-            className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 mb-6 border animate-in fade-in duration-200 ${
+            className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 mb-6 border animate-in fade-in duration-200 shadow-xs ${
               mensajePartidos.tipo === "success"
-                ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-300"
-                : "bg-red-950/80 border-red-500/40 text-red-300"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
             }`}
           >
             {mensajePartidos.tipo === "success" ? (
-              <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
             ) : (
-              <AlertCircle size={16} className="shrink-0 text-red-400" />
+              <AlertCircle size={16} className="shrink-0 text-red-600" />
             )}
             <span>{mensajePartidos.texto}</span>
           </div>
         )}
 
         {/* Partidos Extraídos / Editables (Confirmar antes de Guardar) */}
-        <div id="seccion-partidos-editables" className="space-y-4 pt-4 border-t border-white/10">
+        <div id="seccion-partidos-editables" className="space-y-4 pt-4 border-t border-white/50">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <div>
-              <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <FileText size={18} className="text-blue-400" />
+              <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <FileText size={18} className="text-slate-600" />
                 Revisar y Confirmar los 6 Partidos de la Jornada {jornadaInput}
               </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Los equipos leídos con el OCR se rellenan aquí. Puedes corregir cualquier nombre antes de aplicar.
               </p>
             </div>
-            <span className="text-[11px] px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono font-bold">
+            <span className="text-[11px] px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/25 font-mono font-bold">
               6 Enfrentamientos
             </span>
           </div>
@@ -859,16 +859,16 @@ function preprocessImage(imageSrc, mode = "auto") {
               return (
                 <div
                   key={partido.id || idx}
-                  className={`apple-card-inner rounded-2xl p-4 border transition-all ${
-                    completado ? "border-emerald-500/40 bg-emerald-950/20" : "border-white/10"
-                  } hover-black-card`}
+                  className={`apple-card-inner bg-white/30 backdrop-blur-md rounded-2xl p-4 border transition-all duration-200 ${
+                    completado ? "border-emerald-300/80 bg-emerald-50/40" : "border-white/60"
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-black text-blue-400 font-mono font-black text-[11px] border border-white/10">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-[11px] shadow-xs">
                       PARTIDO 0{idx + 1}
                     </span>
                     {completado ? (
-                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
                         <Check size={12} /> Confirmado
                       </span>
                     ) : (
@@ -879,29 +879,29 @@ function preprocessImage(imageSrc, mode = "auto") {
                   <div className="flex items-center gap-2">
                     {/* Local */}
                     <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Local</label>
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Local</label>
                       <input
                         type="text"
                         value={partido.home}
                         onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
                         placeholder={`Equipo Local 0${idx + 1}`}
-                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
+                        className="w-full px-3 py-2 rounded-xl bg-white/70 border border-white/90 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 shadow-xs"
                       />
                     </div>
 
-                    <span className="text-[10px] font-black text-blue-400 px-1.5 py-1 rounded bg-blue-950/60 border border-blue-500/30 mt-4">
+                    <span className="text-[10px] font-black text-slate-500 px-2 py-1 rounded bg-white/60 border border-white/80 mt-4 shadow-2xs">
                       VS
                     </span>
 
                     {/* Visitante */}
                     <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Visitante</label>
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Visitante</label>
                       <input
                         type="text"
                         value={partido.away}
                         onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
                         placeholder={`Equipo Visitante 0${idx + 1}`}
-                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
+                        className="w-full px-3 py-2 rounded-xl bg-white/70 border border-white/90 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 shadow-xs"
                       />
                     </div>
                   </div>
@@ -916,12 +916,12 @@ function preprocessImage(imageSrc, mode = "auto") {
               <button
                 type="button"
                 onClick={() => setMostrarTextoRaw(!mostrarTextoRaw)}
-                className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                className="text-xs text-slate-500 hover:text-slate-900 underline cursor-pointer"
               >
                 {mostrarTextoRaw ? "Ocultar texto OCR en bruto" : "Ver texto OCR reconocido"}
               </button>
             ) : (
-              <span className="text-xs text-slate-500">Revisa los nombres antes de guardar</span>
+              <span className="text-xs text-slate-400">Revisa los nombres antes de guardar</span>
             )}
 
             <div className="flex items-center gap-3 ml-auto">
@@ -929,7 +929,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                 type="button"
                 onClick={reiniciarPartidos}
                 disabled={guardandoPartidos}
-                className="px-4 py-3.5 rounded-xl bg-red-950/60 border border-red-500/30 text-red-300 hover:bg-black hover:text-white transition-all text-xs font-bold flex items-center gap-2 cursor-pointer hover-black-btn disabled:opacity-50"
+                className="px-4 py-3 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all duration-200 shadow-xs disabled:opacity-50"
               >
                 <RotateCcw size={14} />
                 <span>Vaciar Partidos</span>
@@ -940,7 +940,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                 id="btn-guardar-partidos-ocr"
                 disabled={guardandoPartidos}
                 onClick={guardarPartidosEnServidor}
-                className="px-6 py-3.5 rounded-xl bg-emerald-600 border border-emerald-400/40 text-white font-black text-xs tracking-wider uppercase shadow-xl hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+                className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs tracking-wider uppercase shadow-lg shadow-slate-900/20 transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
                 <Save size={16} />
                 <span>{guardandoPartidos ? "Guardando..." : `Guardar y Aplicar Partidos (Jornada ${jornadaInput})`}</span>
@@ -950,7 +950,7 @@ function preprocessImage(imageSrc, mode = "auto") {
 
           {/* Desglose texto crudo OCR si se solicita */}
           {mostrarTextoRaw && (
-            <div className="mt-4 p-4 rounded-2xl bg-black/80 border border-white/10 font-mono text-[11px] text-slate-300 whitespace-pre-wrap max-h-40 overflow-y-auto">
+            <div className="mt-4 p-4 rounded-2xl bg-white/80 border border-white font-mono text-[11px] text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto shadow-inner">
               {textoExtraidoRaw}
             </div>
           )}
@@ -958,17 +958,17 @@ function preprocessImage(imageSrc, mode = "auto") {
       </div>
 
       {/* SECCIÓN 2: GESTIÓN DEL BOTE POR JORGE (SIN DATOS DE EJEMPLO) */}
-      <div className="apple-card-opaque rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/12">
+      <div className="apple-card-opaque bg-white/35 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/60">
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 border border-white/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-xs border border-white/30">
               <Coins size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white tracking-tight">
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">
                 Gestión del Bote por Jorge
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Añade fondos o ganancias directamente al bote acumulado de la peña
               </p>
             </div>
@@ -978,7 +978,7 @@ function preprocessImage(imageSrc, mode = "auto") {
             type="button"
             onClick={reiniciarBoteACero}
             disabled={guardandoBote}
-            className="px-4 py-2.5 rounded-xl bg-red-950/70 border border-red-500/30 text-red-300 hover:bg-black hover:text-white transition-all text-xs font-bold flex items-center gap-2 cursor-pointer hover-black-btn disabled:opacity-50"
+            className="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-all duration-200 shadow-xs disabled:opacity-50"
           >
             <RotateCcw size={14} />
             <span>Poner Bote a 0.00 €</span>
@@ -987,10 +987,10 @@ function preprocessImage(imageSrc, mode = "auto") {
 
         {mensajeBote && (
           <div
-            className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 mb-4 border ${
+            className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 mb-4 border animate-in fade-in duration-200 shadow-xs ${
               mensajeBote.tipo === "success"
-                ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-300"
-                : "bg-red-950/80 border-red-500/40 text-red-300"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
             }`}
           >
             <CheckCircle2 size={15} />
@@ -1007,7 +1007,7 @@ function preprocessImage(imageSrc, mode = "auto") {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+              <label className="text-xs font-bold text-slate-600 block mb-1.5">
                 Importe a Añadir (€) *
               </label>
               <div className="relative">
@@ -1018,7 +1018,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                   placeholder="Introduce cantidad"
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-sm font-mono font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/80 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-xs"
                 />
                 <span className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">
                   €
@@ -1027,7 +1027,7 @@ function preprocessImage(imageSrc, mode = "auto") {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+              <label className="text-xs font-bold text-slate-600 block mb-1.5">
                 Concepto / Motivo
               </label>
               <input
@@ -1035,7 +1035,7 @@ function preprocessImage(imageSrc, mode = "auto") {
                 placeholder="Aportación, bote acumulado, etc."
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/60 border border-white/80 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-xs"
               />
             </div>
           </div>
@@ -1044,7 +1044,7 @@ function preprocessImage(imageSrc, mode = "auto") {
             <button
               type="submit"
               disabled={guardandoBote || !cantidad}
-              className="px-6 py-3 rounded-xl bg-amber-600 border border-amber-400/40 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-600/30 hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+              className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-slate-900/20 transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 disabled:opacity-50"
             >
               <Plus size={15} />
               <span>{guardandoBote ? "Añadiendo..." : "Añadir Fondos al Bote"}</span>
