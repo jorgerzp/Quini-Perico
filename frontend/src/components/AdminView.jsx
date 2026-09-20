@@ -169,6 +169,155 @@ export default function AdminView({
     reader.readAsDataURL(file);
   };
 
+// Funciones auxiliares para normalización, distancia y matching inteligente de equipos
+function normalizeStr(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, " ")
+    .trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const d = Array.from({ length: m + 1 }, () => new Array(n + 1));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+  return d[m][n];
+}
+
+function findBestTeamMatch(line) {
+  if (!line || line.length < 2) return null;
+
+  // Limpiar caracteres de ruido inicial generados por los escudos (1-3 letras o símbolos raros)
+  // Ej: "Y Athletic Club" -> "Athletic Club", "UB Barcelona" -> "Barcelona", "KT At. Madrid" -> "At. Madrid"
+  const cleaned = line
+    .replace(/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+/, "")
+    .replace(/^[A-Za-z0-9\W]{1,3}\s+/, "")
+    .replace(/\s+[012M\.\,\-\s]{1,6}$/i, "")
+    .trim();
+
+  // Filtrar palabras de cabecera o botones que no son equipos
+  const lowerCleaned = cleaned.toLowerCase();
+  const PALABRAS_PROHIBIDAS = [
+    "pronostica", "partidos", "quinigol", "loterias", "apuestas", "sencilla",
+    "multiple", "aleatoria", "limpiar", "importe", "bote", "jornada", "fecha",
+    "domingo", "sabado", "viernes", "lunes", "martes", "miercoles", "jueves"
+  ];
+  if (PALABRAS_PROHIBIDAS.some((p) => lowerCleaned.includes(p))) {
+    return null;
+  }
+
+  const normCleaned = normalizeStr(cleaned);
+  const normOriginal = normalizeStr(line);
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const eq of EQUIPOS_CONOCIDOS) {
+    const normEq = normalizeStr(eq);
+
+    // Coincidencia exacta
+    if (normCleaned === normEq || normOriginal === normEq) {
+      return eq;
+    }
+
+    // Coincidencia de subcadena
+    if (normCleaned.includes(normEq) || normOriginal.includes(normEq)) {
+      if (normEq.length > bestScore) {
+        best = eq;
+        bestScore = normEq.length;
+      }
+    } else if (normCleaned.length >= 4 && normEq.includes(normCleaned)) {
+      if (normCleaned.length > bestScore) {
+        best = eq;
+        bestScore = normCleaned.length;
+      }
+    } else {
+      // Fuzzy matching con distancia Levenshtein
+      const dist = levenshtein(normCleaned, normEq);
+      const maxPermitido = normEq.length > 7 ? 2 : 1;
+      if (dist <= maxPermitido && normEq.length > bestScore) {
+        best = eq;
+        bestScore = normEq.length;
+      }
+    }
+  }
+
+  // Si no coincide con la lista pero tiene forma de nombre de equipo válido (> 3 letras)
+  if (!best && cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  return best;
+}
+
+// Preprocesamiento de imagen con Canvas: recorte de columna de equipos y mejora de contraste
+function preprocessImage(imageSrc, mode = "auto") {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      const isPortrait = h / w > 1.25;
+
+      const canvas = document.createElement("canvas");
+      let cropX = 0;
+      let cropY = 0;
+      let cropW = w;
+      let cropH = h;
+
+      if (mode === "teams_column" || (mode === "auto" && isPortrait)) {
+        // En capturas de app móvil (Loterías / Quinigol):
+        // La columna izquierda contiene los nombres de los equipos de los 6 partidos (dos filas por partido)
+        // Se excluye la botonera [0][1][2][M] de la derecha para evitar caracteres parásitos.
+        cropX = Math.round(w * 0.07);
+        cropY = Math.round(h * 0.14);
+        cropW = Math.round(w * 0.50);
+        cropH = Math.round(h * 0.74);
+      }
+
+      // Escalar 3x para que las letras tengan altura óptima de reconocimiento
+      const scale = Math.max(2.5, Math.min(4.5, 1200 / cropW));
+      canvas.width = Math.round(cropW * scale);
+      canvas.height = Math.round(cropH * scale);
+
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+      // Filtro de contraste y binarización a escala de grises
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        const val = gray > 180 ? 255 : Math.max(0, (gray - 35) * 1.6);
+        data[i] = val;
+        data[i + 1] = val;
+        data[i + 2] = val;
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      resolve({
+        dataUrl: canvas.toDataURL("image/png"),
+        isPortrait,
+      });
+    };
+    img.onerror = reject;
+    img.src = imageSrc;
+  });
+}
+
   // Parser heurístico avanzado para extraer los 6 partidos del texto de la foto
   const parsearTextoQuinigol = (text) => {
     if (!text || typeof text !== "string") return partidosEditables;
@@ -176,102 +325,72 @@ export default function AdminView({
     const lineas = text
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => {
-        const lower = l.toLowerCase();
-        if (l.length < 2) return false;
-        if (lower.includes("quinigol") || lower.includes("loterias") || lower.includes("apuestas")) return false;
-        if (lower.includes("pronostico") || lower.includes("fecha") || lower.includes("domingo") || lower.includes("sabado")) return false;
-        return true;
-      });
+      .filter((l) => l.length >= 2);
 
-    const partidosEncontrados = [];
-
-    // Estrategia 1: Líneas que empiezan con número 1 al 6
-    // Ej: "1. Real Madrid - Barcelona", "1 Barcelona vs Girona", "1 REAL MADRID    BARCELONA"
-    const regexNumerado = /^[pP]?([1-6])[\.\-\s\:\)]+\s*([A-Za-zÁÉÍÓÚáéíóúÑñ\.\s]+?)(?:\s*[-–—vsVS/]+\s*|\s{2,}|\t)(.+)$/;
-
-    for (const linea of lineas) {
-      const match = linea.match(regexNumerado);
-      if (match) {
-        const pNum = parseInt(match[1], 10);
-        let home = match[2].trim().replace(/\d+$/, "").trim();
-        let away = match[3].trim().replace(/\d+$/, "").trim();
-        if (home.length > 1 && away.length > 1) {
-          partidosEncontrados[pNum - 1] = { home, away };
-        }
-      }
-    }
-
-    // Estrategia 2: Líneas con separadores claros (" - ", " – ", " — ", " vs ", " VS ")
+    // ESTRATEGIA 1: Líneas con separadores claros (" - ", " vs ", " – ", " — ")
     const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / "];
+    const partidosSeparador = [];
+
     for (const linea of lineas) {
-      if (partidosEncontrados.filter(Boolean).length >= 6) break;
+      const lower = linea.toLowerCase();
+      if (["pronostica", "partidos", "quinigol", "loterias", "apuestas"].some((p) => lower.includes(p))) {
+        continue;
+      }
 
       for (const sep of separadores) {
         if (linea.includes(sep)) {
           const split = linea.split(sep);
           if (split.length >= 2) {
-            let h = split[0].replace(/^[pP]?\d+[\.\-\s\:\)]+/, "").trim();
-            let a = split[1].replace(/[\.\-\s\:\)]+\d+$/, "").replace(/\d+$/, "").trim();
-            if (h.length > 1 && a.length > 1) {
-              for (let i = 0; i < 6; i++) {
-                if (!partidosEncontrados[i]) {
-                  partidosEncontrados[i] = { home: h, away: a };
-                  break;
-                }
-              }
+            const rawH = split[0].replace(/^[pP]?\d+[\.\-\s\:\)]+/, "").trim();
+            const rawA = split[1].replace(/[\.\-\s\:\)]+\d+$/, "").trim();
+            const h = findBestTeamMatch(rawH) || rawH;
+            const a = findBestTeamMatch(rawA) || rawA;
+            if (h && a && h.length > 1 && a.length > 1) {
+              partidosSeparador.push({ home: h, away: a });
+              break;
             }
-            break;
           }
         }
       }
     }
 
-    // Estrategia 3: Búsqueda de equipos conocidos en el texto en orden de aparición
-    const textoLimpio = text.replace(/[\r\n]+/g, " ");
+    if (partidosSeparador.length >= 4) {
+      return partidosEditables.map((p, idx) => ({
+        ...p,
+        home: partidosSeparador[idx]?.home || p.home || `Local ${idx + 1}`,
+        away: partidosSeparador[idx]?.away || p.away || `Visitante ${idx + 1}`,
+      }));
+    }
+
+    // ESTRATEGIA 2: Lista secuencial de equipos (Captura de app: columna izquierda con los equipos seguidos de arriba a abajo)
     const equiposDetectados = [];
-    for (const eq of EQUIPOS_CONOCIDOS) {
-      const regex = new RegExp(`\\b${eq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "i");
-      const idx = textoLimpio.search(regex);
-      if (idx !== -1) {
-        equiposDetectados.push({ nombre: eq, pos: idx });
-      }
-    }
-    equiposDetectados.sort((a, b) => a.pos - b.pos);
-
-    // Evitar duplicados consecutivos
-    const equiposUnicos = [];
-    for (const eq of equiposDetectados) {
-      if (!equiposUnicos.some(e => Math.abs(e.pos - eq.pos) < 3 || e.nombre.toLowerCase() === eq.nombre.toLowerCase())) {
-        equiposUnicos.push(eq);
+    for (const linea of lineas) {
+      const team = findBestTeamMatch(linea);
+      if (team) {
+        const ultimo = equiposDetectados[equiposDetectados.length - 1];
+        if (!ultimo || normalizeStr(ultimo) !== normalizeStr(team)) {
+          equiposDetectados.push(team);
+        }
       }
     }
 
-    // Emparejar de 2 en 2 para los huecos restantes
-    let eqIdx = 0;
-    for (let i = 0; i < 6; i++) {
-      if (!partidosEncontrados[i] && eqIdx + 1 < equiposUnicos.length) {
-        partidosEncontrados[i] = {
-          home: equiposUnicos[eqIdx].nombre,
-          away: equiposUnicos[eqIdx + 1].nombre,
-        };
-        eqIdx += 2;
+    if (equiposDetectados.length >= 2) {
+      const nuevos = [...partidosEditables];
+      for (let i = 0; i < 6; i++) {
+        const idxLocal = i * 2;
+        const idxVisitante = i * 2 + 1;
+        if (idxLocal < equiposDetectados.length) {
+          nuevos[i] = {
+            ...nuevos[i],
+            home: equiposDetectados[idxLocal] || nuevos[i].home,
+            away: idxVisitante < equiposDetectados.length ? equiposDetectados[idxVisitante] : nuevos[i].away,
+          };
+        }
       }
+      return nuevos;
     }
 
-    // Si aún faltan huecos y no se reconoció nada, conservar lo previo
-    const nuevosPartidos = partidosEditables.map((p, idx) => {
-      if (partidosEncontrados[idx]) {
-        return {
-          ...p,
-          home: partidosEncontrados[idx].home || p.home,
-          away: partidosEncontrados[idx].away || p.away,
-        };
-      }
-      return p;
-    });
-
-    return nuevosPartidos;
+    return partidosEditables;
   };
 
   // Ejecutar OCR en la foto seleccionada
@@ -283,21 +402,38 @@ export default function AdminView({
 
     setProcesandoOcr(true);
     setProgresoOcr(0);
-    setEstadoOcrTexto("Iniciando motor OCR de reconocimiento...");
+    setEstadoOcrTexto("Analizando y preprocesando imagen...");
     setMensajePartidos(null);
 
     try {
+      // 1. Preprocesar y enfocar la columna de nombres de equipos (evita botones [0][1][2][M])
+      setEstadoOcrTexto("Aislando y mejorando la columna de equipos...");
+      const prep = await preprocessImage(imagenPreview, "auto");
+
       const worker = await createWorker("spa");
 
-      setEstadoOcrTexto("Escaneando nombres de equipos en la foto...");
-      const ret = await worker.recognize(imagenPreview);
+      setEstadoOcrTexto("Escaneando nombres de equipos en la columna...");
+      const ret = await worker.recognize(prep.dataUrl);
+      let texto = ret.data.text || "";
+
+      let partidosParseados = parsearTextoQuinigol(texto);
+      let numRellenados = partidosParseados.filter((p) => p.home && p.away).length;
+
+      // Si por formato de la foto no detectó suficientes equipos con el recorte de columna, probar la imagen completa optimizada
+      if (numRellenados < 4 && prep.isPortrait) {
+        setEstadoOcrTexto("Probando reconocimiento amplio de la imagen...");
+        const fullPrep = await preprocessImage(imagenPreview, "full_enhanced");
+        const retFull = await worker.recognize(fullPrep.dataUrl);
+        const partidosFull = parsearTextoQuinigol(retFull.data.text || "");
+        if (partidosFull.filter((p) => p.home && p.away).length > numRellenados) {
+          partidosParseados = partidosFull;
+          texto = retFull.data.text || "";
+        }
+      }
+
       await worker.terminate();
 
-      const texto = ret.data.text || "";
       setTextoExtraidoRaw(texto);
-
-      setEstadoOcrTexto("Emparejando equipos y rellenando los 6 partidos...");
-      const partidosParseados = parsearTextoQuinigol(texto);
 
       // Rellenar los inputs editables inmediatamente
       setPartidosEditables(partidosParseados);
@@ -305,7 +441,7 @@ export default function AdminView({
 
       setMensajePartidos({
         tipo: "success",
-        texto: "¡OCR completado! Se han leído los enfrentamientos y cargado en los 6 partidos de abajo. Revísalos o corrígelos antes de pulsar 'Guardar y Aplicar Partidos'.",
+        texto: "¡Equipos reconocidos con éxito! Se han colocado en los 6 partidos de abajo. Revísalos y confirma antes de guardar.",
       });
 
       // Scroll suave hacia la sección de confirmación de partidos
