@@ -628,17 +628,7 @@ app.post("/api/resultados", async (req, res) => {
         const pronostico = pronosticosObj[key];
 
         if (oficial && pronostico) {
-          // Acierto goles local (1 punto)
-          if (oficial.local && oficial.local === pronostico.local) {
-            puntosJornada += 1;
-            aciertosJornada += 1;
-          }
-          // Acierto goles visitante (1 punto)
-          if (oficial.visitante && oficial.visitante === pronostico.visitante) {
-            puntosJornada += 1;
-            aciertosJornada += 1;
-          }
-          // Pleno al partido (bonus de 1 punto extra)
+          // 1 punto por acierto: se otorga 1 punto al acertar el resultado exacto del partido
           if (
             oficial.local &&
             oficial.local === pronostico.local &&
@@ -646,6 +636,7 @@ app.post("/api/resultados", async (req, res) => {
             oficial.visitante === pronostico.visitante
           ) {
             puntosJornada += 1;
+            aciertosJornada += 1;
           }
         }
       }
