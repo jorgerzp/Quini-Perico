@@ -12,102 +12,97 @@ export default function ClasificacionView({
   const tercero = clasificacion[2];
 
   return (
-    <div className="space-y-16 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      {/* Encabezado Titular Gigante */}
-      <section className="hairline-b pb-12">
+    <div className="space-y-8 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
+      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-6 mb-4">
-          <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+          <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
             RANKING OFICIAL DE ACIERTOS · JORNADA {numeroJornada}
           </span>
 
           <button
             type="button"
             onClick={onIrBoleto}
-            className="bg-black text-white text-sm font-semibold tracking-tight rounded-full py-3.5 px-7 hover:opacity-80 transition-opacity cursor-pointer"
+            className="bg-stone-800 text-white text-sm font-semibold tracking-tight rounded-full py-3.5 px-10 shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer"
           >
             Pronosticar Mi Boleto
           </button>
         </div>
 
-        <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-black">
+        <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
           Clasificación
         </h2>
-        <p className="text-base text-gray-500 font-normal mt-3">
+        <p className="text-base text-stone-500 font-normal mt-3">
           Ordenada de mayor a menor según la suma de aciertos totales acumulados en la peña.
         </p>
       </section>
 
-      {/* Podio Top 3 Tipográfico Minimalista */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 2º Puesto */}
         {segundo && (
-          <div className="border border-gray-200/80 rounded-3xl p-8 bg-white flex flex-col justify-between order-2 md:order-1">
+          <div className="border border-white/70 rounded-3xl p-8 bg-white/40 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between order-2 md:order-1">
             <div>
-              <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest block mb-4">
+              <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
                 02 · SEGUNDO
               </span>
-              <h3 className="text-2xl font-bold tracking-tight text-black">
+              <h3 className="text-2xl font-bold tracking-tight text-stone-800">
                 {segundo.nombre}
               </h3>
-              <p className="text-xs font-mono text-gray-400 mt-1">
+              <p className="text-xs font-mono text-stone-400 mt-1">
                 {segundo.puntos} puntos
               </p>
             </div>
             <div className="mt-8 font-mono">
-              <span className="text-5xl font-extrabold tracking-tighter text-black">
+              <span className="text-5xl font-extrabold tracking-tighter text-stone-800">
                 {segundo.aciertos}
               </span>
-              <span className="text-xs font-mono font-semibold text-gray-400 uppercase ml-2">
+              <span className="text-xs font-mono font-semibold text-stone-400 uppercase ml-2">
                 aciertos
               </span>
             </div>
           </div>
         )}
 
-        {/* 1º Puesto (Líder) */}
         {primero && (
-          <div className="border-2 border-black rounded-3xl p-8 sm:p-10 bg-white flex flex-col justify-between order-1 md:order-2 shadow-sm">
+          <div className="border border-white/70 rounded-3xl p-8 sm:p-10 bg-gradient-to-br from-white/60 to-[#d9c5b2]/30 backdrop-blur-2xl flex flex-col justify-between order-1 md:order-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
             <div>
-              <span className="text-xs font-mono font-bold text-black uppercase tracking-widest block mb-4">
+              <span className="text-xs font-mono font-bold text-stone-600 uppercase tracking-widest block mb-4">
                 01 · LÍDER DE LA PEÑA
               </span>
-              <h3 className="text-3xl font-extrabold tracking-tight text-black">
+              <h3 className="text-3xl font-extrabold tracking-tight text-stone-800">
                 {primero.nombre}
               </h3>
-              <p className="text-xs font-mono text-gray-500 mt-1">
+              <p className="text-xs font-mono text-stone-500 mt-1">
                 {primero.puntos} puntos
               </p>
             </div>
             <div className="mt-8 font-mono">
-              <span className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-black">
+              <span className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-stone-800">
                 {primero.aciertos}
               </span>
-              <span className="text-xs font-mono font-bold text-black uppercase ml-2">
+              <span className="text-xs font-mono font-bold text-stone-700 uppercase ml-2">
                 aciertos
               </span>
             </div>
           </div>
         )}
 
-        {/* 3º Puesto */}
         {tercero && (
-          <div className="border border-gray-200/80 rounded-3xl p-8 bg-white flex flex-col justify-between order-3">
+          <div className="border border-white/70 rounded-3xl p-8 bg-white/40 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between order-3">
             <div>
-              <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest block mb-4">
+              <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
                 03 · TERCERO
               </span>
-              <h3 className="text-2xl font-bold tracking-tight text-black">
+              <h3 className="text-2xl font-bold tracking-tight text-stone-800">
                 {tercero.nombre}
               </h3>
-              <p className="text-xs font-mono text-gray-400 mt-1">
+              <p className="text-xs font-mono text-stone-400 mt-1">
                 {tercero.puntos} puntos
               </p>
             </div>
             <div className="mt-8 font-mono">
-              <span className="text-5xl font-extrabold tracking-tighter text-black">
+              <span className="text-5xl font-extrabold tracking-tighter text-stone-800">
                 {tercero.aciertos}
               </span>
-              <span className="text-xs font-mono font-semibold text-gray-400 uppercase ml-2">
+              <span className="text-xs font-mono font-semibold text-stone-400 uppercase ml-2">
                 aciertos
               </span>
             </div>
@@ -115,18 +110,17 @@ export default function ClasificacionView({
         )}
       </section>
 
-      {/* Tabla Completa de los 8 Miembros */}
-      <section className="space-y-6">
-        <div className="flex items-baseline justify-between hairline-b pb-4">
-          <h3 className="text-2xl font-bold tracking-tight text-black">
+      <section className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-10 space-y-6">
+        <div className="flex items-baseline justify-between border-b border-white/50 pb-4">
+          <h3 className="text-2xl font-bold tracking-tight text-stone-800">
             Tabla Completa (Los 8)
           </h3>
-          <span className="text-xs font-mono text-gray-400 uppercase">
+          <span className="text-xs font-mono text-stone-400 uppercase">
             Aciertos Totales
           </span>
         </div>
 
-        <div className="divide-y divide-gray-200/80">
+        <div className="divide-y divide-white/50">
           {clasificacion.map((user, idx) => {
             const esElActivo = usuarioActivo?.id === user.id;
             const esJorge = user.nombre === "Jorge";
@@ -137,37 +131,37 @@ export default function ClasificacionView({
                 className="py-6 flex items-center justify-between gap-6 transition-colors"
               >
                 <div className="flex items-center gap-6">
-                  <span className="font-mono text-base font-bold text-gray-400 w-8">
+                  <span className="font-mono text-base font-bold text-stone-400 w-8">
                     {String(idx + 1).padStart(2, "0")}
                   </span>
 
                   <div>
                     <div className="flex items-baseline gap-3">
-                      <span className="text-xl font-bold tracking-tight text-black">
+                      <span className="text-xl font-bold tracking-tight text-stone-800">
                         {user.nombre}
                       </span>
                       {esJorge && (
-                        <span className="text-[10px] font-mono font-semibold text-gray-400 uppercase">
+                        <span className="text-[10px] font-mono font-semibold text-stone-400 uppercase">
                           ADMIN
                         </span>
                       )}
                       {esElActivo && (
-                        <span className="text-[10px] font-mono font-extrabold text-black uppercase">
+                        <span className="text-[10px] font-mono font-extrabold text-[#cbb29b] uppercase">
                           (TÚ)
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-mono text-gray-400 mt-0.5">
+                    <p className="text-xs font-mono text-stone-400 mt-0.5">
                       {user.puntos} puntos · {user.haJugado ? "Boleto sellado" : "Pendiente de jugar"}
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right font-mono">
-                  <span className="text-3xl font-extrabold tracking-tight text-black">
+                  <span className="text-3xl font-extrabold tracking-tight text-stone-800">
                     {user.aciertos}
                   </span>
-                  <span className="text-xs text-gray-400 ml-1.5 uppercase font-medium">
+                  <span className="text-xs text-stone-400 ml-1.5 uppercase font-medium">
                     pts
                   </span>
                 </div>

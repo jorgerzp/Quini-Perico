@@ -50,7 +50,7 @@ export default function ResultadosView({
 
   if (cargando) {
     return (
-      <div className="py-20 text-center text-sm text-gray-400 font-medium">
+      <div className="py-20 text-center text-sm text-stone-400 font-medium">
         Cargando estado de la jornada...
       </div>
     );
@@ -59,14 +59,14 @@ export default function ResultadosView({
   // CASO 1: NO HAY PARTIDOS CONFIGURADOS EN LA JORNADA
   if (!hayPartidos) {
     return (
-      <div className="max-w-2xl py-20 animate-in fade-in duration-300">
-        <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-3">
+      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+        <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           JORNADA {numeroJornada} · ESTADO
         </span>
-        <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tighter text-black">
+        <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tighter text-stone-800">
           Aún no hay quinigol para la Jornada {numeroJornada}
         </h2>
-        <p className="text-base text-gray-500 font-normal mt-4 leading-relaxed max-w-lg">
+        <p className="text-base text-stone-500 font-normal mt-4 leading-relaxed max-w-lg">
           {esJorge
             ? `Primero debes introducir los partidos de la Jornada ${numeroJornada} en el Panel Superadmin.`
             : `Jorge aún no ha configurado los partidos de la Jornada ${numeroJornada}.`}
@@ -78,14 +78,14 @@ export default function ResultadosView({
   // CASO 2: NO ES JORGE Y AÚN NO SE HAN PUBLICADO RESULTADOS
   if (!esJorge && !disponible) {
     return (
-      <div className="max-w-2xl py-20 animate-in fade-in duration-300">
-        <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-3">
+      <div className="max-w-2xl py-12 sm:py-20 animate-in fade-in duration-300 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-8 sm:px-12">
+        <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           JORNADA {numeroJornada} · ESCRUTINIO
         </span>
-        <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tighter text-black">
+        <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tighter text-stone-800">
           Resultados de la Jornada {numeroJornada} Pendientes
         </h2>
-        <p className="text-base text-gray-500 font-normal mt-4 leading-relaxed max-w-lg">
+        <p className="text-base text-stone-500 font-normal mt-4 leading-relaxed max-w-lg">
           Jorge aún no ha publicado los resultados oficiales de los partidos de la Jornada {numeroJornada}. Vuelve a consultar en cuanto concluyan los partidos.
         </p>
       </div>
@@ -95,36 +95,36 @@ export default function ResultadosView({
   // CASO 3: NO ES JORGE PERO SÍ HAY RESULTADOS DISPONIBLES (MODO LECTURA)
   if (!esJorge && disponible) {
     return (
-      <div className="space-y-10 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-        <div className="hairline-b pb-8">
-          <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-3">
+      <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
+        <div className="bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+          <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
             JORNADA {numeroJornada} · OFICIAL
           </span>
-          <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-black">
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
             Resultados Oficiales
           </h2>
-          <p className="text-sm text-gray-500 mt-2 font-normal">
+          <p className="text-sm text-stone-500 mt-2 font-normal">
             Marcadores finales validados de la Jornada {numeroJornada}
           </p>
         </div>
 
-        <div className="divide-y divide-gray-200/80">
+        <div className="space-y-4">
           {partidos.map((partido, idx) => {
             const res = resultados[partido.key] || { local: "-", visitante: "-" };
             return (
-              <div key={partido.id || idx} className="py-8 flex items-center justify-between gap-6">
+              <div key={partido.id || idx} className="py-7 px-6 sm:px-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl flex items-center justify-between gap-6">
                 <div>
-                  <span className="text-xs font-bold font-mono tracking-widest text-gray-400 uppercase block mb-1">
+                  <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase block mb-1">
                     PARTIDO {String(idx + 1).padStart(2, "0")}
                   </span>
-                  <p className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">
-                    {partido.home} <span className="text-gray-400 font-normal">vs</span> {partido.away}
+                  <p className="text-xl sm:text-2xl font-semibold tracking-tight text-stone-800">
+                    {partido.home} <span className="text-stone-400 font-normal">vs</span> {partido.away}
                   </p>
                 </div>
 
-                <div className="text-3xl sm:text-4xl font-extrabold text-black font-mono tracking-tight shrink-0">
+                <div className="text-3xl sm:text-4xl font-extrabold text-stone-800 font-mono tracking-tight shrink-0">
                   <span>{res.local || "-"}</span>
-                  <span className="text-gray-300 mx-2">·</span>
+                  <span className="text-stone-300 mx-2">·</span>
                   <span>{res.visitante || "-"}</span>
                 </div>
               </div>
@@ -231,19 +231,18 @@ export default function ResultadosView({
   };
 
   return (
-    <div className="space-y-0 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
-      {/* Encabezado Titular Gigante */}
-      <section className="pb-10 hairline-b mb-6">
-        <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-3">
+    <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
+      <section className="pb-8 mb-2 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
+        <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
           SUPERADMIN · JORNADA {numeroJornada}
         </span>
 
-        <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-black">
+        <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
           Poner Resultados
         </h2>
 
         <div className="mt-8 flex flex-wrap items-baseline justify-between gap-6">
-          <p className="text-base text-gray-500 font-normal max-w-md">
+          <p className="text-base text-stone-500 font-normal max-w-md">
             Introduce los marcadores para computar los aciertos de todos los miembros.
           </p>
 
@@ -251,7 +250,7 @@ export default function ResultadosView({
             <button
               type="button"
               onClick={autocompletarResultados}
-              className="border border-gray-300 hover:border-black rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider text-black transition-colors cursor-pointer"
+              className="bg-white/30 border border-white/50 hover:bg-white/50 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider text-stone-700 transition-all duration-300 cursor-pointer"
             >
               Llenar Azar
             </button>
@@ -260,7 +259,7 @@ export default function ResultadosView({
               <button
                 type="button"
                 onClick={reiniciarResultadosServidor}
-                className="text-xs font-semibold tracking-wider uppercase text-gray-400 hover:text-black transition-colors cursor-pointer px-2 py-3"
+                className="text-xs font-semibold tracking-wider uppercase text-stone-400 hover:text-stone-800 transition-colors cursor-pointer px-2 py-3"
               >
                 Retirar Resultados
               </button>
@@ -271,10 +270,10 @@ export default function ResultadosView({
 
       {mensaje && (
         <div
-          className={`p-4 rounded-full text-xs font-semibold tracking-wide uppercase transition-all mb-8 ${
+          className={`p-4 rounded-full text-xs font-semibold tracking-wide uppercase transition-all mb-8 backdrop-blur-xl ${
             tipoMensaje === "success"
-              ? "bg-white border border-black text-black"
-              : "bg-white border border-gray-400 text-gray-700"
+              ? "bg-white/50 border border-white/70 text-stone-800"
+              : "bg-white/40 border border-white/50 text-stone-600"
           }`}
         >
           <span>{mensaje}</span>
@@ -282,28 +281,27 @@ export default function ResultadosView({
       )}
 
       {/* Filas Planas de los 6 Partidos */}
-      <section className="divide-y divide-gray-200/80">
+      <section className="space-y-4">
         {partidos.map((partido, idx) => {
           const res = resultados[partido.key] || { local: null, visitante: null };
 
           return (
             <div
               key={partido.id || idx}
-              className="py-8 transition-colors"
+              className="py-7 px-6 sm:px-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl transition-all"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold font-mono tracking-widest text-gray-400 uppercase">
+                <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
                   PARTIDO {String(idx + 1).padStart(2, "0")}
                 </span>
-                <span className="text-xs font-mono font-medium text-gray-500 uppercase">
+                <span className="text-xs font-mono font-medium text-stone-500 uppercase">
                   MARCADOR OFICIAL
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-                {/* LOCAL */}
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-gray-900 truncate">
+                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
                     {partido.home}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -315,10 +313,10 @@ export default function ResultadosView({
                           type="button"
                           id={`res-match-${idx + 1}-home-${gol}`}
                           onClick={() => seleccionarGol(partido.key, "local", gol)}
-                          className={`font-mono text-base transition-all cursor-pointer flex items-center justify-center ${
+                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             sel
-                              ? "bg-black text-white font-bold rounded-full w-12 h-12 shadow-sm"
-                              : "bg-gray-100/80 text-gray-400 font-medium rounded-full w-12 h-12 hover:bg-gray-200 hover:text-black transition-colors"
+                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
                           }`}
                         >
                           {gol}
@@ -328,9 +326,8 @@ export default function ResultadosView({
                   </div>
                 </div>
 
-                {/* VISITANTE */}
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-gray-900 truncate">
+                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
                     {partido.away}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -342,10 +339,10 @@ export default function ResultadosView({
                           type="button"
                           id={`res-match-${idx + 1}-away-${gol}`}
                           onClick={() => seleccionarGol(partido.key, "visitante", gol)}
-                          className={`font-mono text-base transition-all cursor-pointer flex items-center justify-center ${
+                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
                             sel
-                              ? "bg-black text-white font-bold rounded-full w-12 h-12 shadow-sm"
-                              : "bg-gray-100/80 text-gray-400 font-medium rounded-full w-12 h-12 hover:bg-gray-200 hover:text-black transition-colors"
+                              ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(203,178,155,0.4)] border-transparent scale-105 transition-all duration-300"
+                              : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 transition-all duration-300"
                           }`}
                         >
                           {gol}
@@ -360,22 +357,21 @@ export default function ResultadosView({
         })}
       </section>
 
-      {/* Botón de Publicación Píldora Negra */}
-      <section className="pt-16 max-w-md mx-auto text-center space-y-4">
+      <section className="pt-10 max-w-md mx-auto text-center space-y-4">
         <button
           type="button"
           id="btn-publicar-resultados"
           disabled={guardando || !estaCompleto}
           onClick={guardarYCalcular}
-          className={`w-full py-4 px-8 rounded-full text-base md:text-lg font-semibold tracking-tight transition-opacity ${
+          className={`w-full py-4 px-10 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
             estaCompleto
-              ? "bg-black text-white hover:opacity-80 cursor-pointer shadow-sm"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 cursor-pointer"
+              : "bg-white/30 border border-white/50 text-stone-400 cursor-not-allowed"
           }`}
         >
           {guardando ? "Publicando Resultados..." : "Publicar Resultados de la Jornada"}
         </button>
-        <p className="text-xs text-gray-400 uppercase tracking-widest">
+        <p className="text-xs text-stone-400 uppercase tracking-widest">
           {estaCompleto
             ? "Al publicar se computarán los aciertos de toda la peña"
             : `Rellena los ${12 - totalRellenados} marcadores restantes para publicar`}

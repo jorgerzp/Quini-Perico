@@ -185,8 +185,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col lg:flex-row antialiased text-black selection:bg-black selection:text-white font-sans">
-      {/* Dashboard Lateral Apple Minimalista */}
+    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-[#f8f5f2] to-[#e8e4de] text-[#4a4641] pt-32 antialiased selection:bg-[#cbb29b] selection:text-white font-sans">
       <Sidebar
         seccionActiva={seccionActiva}
         setSeccionActiva={setSeccionActiva}
@@ -196,35 +195,13 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Área de Contenido Principal con espaciado generoso */}
-      <main className="flex-1 p-6 sm:p-12 lg:p-16 overflow-y-auto max-w-5xl w-full mx-auto">
-        {/* Cabecera Superior Minimalista Extrema */}
-        <div className="hairline-b pb-8 mb-12 flex flex-wrap items-baseline justify-between gap-6">
-          <div>
-            <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase block mb-1">
-              JORNADA {numeroJornada} · QUINIGOL OFICIAL
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
-              QUINI-PERICO
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <span className="text-xs font-semibold tracking-wide uppercase text-gray-400">
-              {usuarioActivo?.nombre || "Miembro"}
-            </span>
-
-            <button
-              type="button"
-              id="btn-top-logout"
-              onClick={handleLogout}
-              className="text-xs font-semibold tracking-wider uppercase text-gray-400 hover:text-black transition-colors cursor-pointer"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
+      <main className="relative z-10 px-4 sm:px-8 lg:px-10 pb-20 overflow-y-auto max-w-6xl w-full mx-auto">
+        <div className="sr-only">
+          <span>{usuarioActivo?.nombre || "Miembro"}</span>
+          <button type="button" id="btn-top-logout" onClick={handleLogout}>
+            Cerrar Sesión
+          </button>
         </div>
-
 
         {seccionActiva === "boleto" && (
           <BoletoView

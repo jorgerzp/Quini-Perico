@@ -91,14 +91,14 @@ export default function AdminView({
   if (!esJorge) {
     return (
       <div className="max-w-xl mx-auto py-24 px-6 text-center">
-        <div className="bg-white rounded-3xl p-12 border border-gray-200/80 shadow-xs">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+        <div className="bg-white/40 backdrop-blur-2xl rounded-3xl p-12 border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
             Seguridad
           </p>
-          <h2 className="text-3xl font-extrabold tracking-tighter text-black mb-3">
+          <h2 className="text-3xl font-extrabold tracking-tighter text-stone-800 mb-3">
             Acceso Restringido
           </h2>
-          <p className="text-sm font-medium text-gray-500">
+          <p className="text-sm font-medium text-stone-500">
             El panel Superadmin solo está habilitado para Jorge.
           </p>
         </div>
@@ -591,17 +591,16 @@ export default function AdminView({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-16 pb-20 text-black">
-      {/* Header Superadmin */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 border-b border-gray-200/80">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20 text-[#4a4641]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
         <div>
-          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-3">
+          <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-3">
             Superadmin · Jorge
           </p>
-          <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-black">
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
             Control Maestro
           </h2>
-          <p className="text-sm font-medium text-gray-500 tracking-tight mt-2">
+          <p className="text-sm font-medium text-stone-500 tracking-tight mt-2">
             Escaneo OCR de fotos oficiales, configuración de partidos y gestión de fondos.
           </p>
         </div>
@@ -609,24 +608,24 @@ export default function AdminView({
         <button
           type="button"
           onClick={onIrResultados}
-          className="self-start sm:self-auto px-8 py-3.5 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer"
+          className="self-start sm:self-auto px-10 py-3.5 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer"
         >
           Resultados Oficiales
         </button>
       </div>
 
       {/* CONTROL OFICIAL DE NÚMERO DE JORNADA */}
-      <div className="space-y-6 pb-12 border-b border-gray-200/80">
+      <div className="space-y-6 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
+            <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
               Edición Oficial
             </p>
             <div className="flex items-baseline gap-4">
-              <span className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-black font-mono">
+              <span className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-stone-800 font-mono">
                 J.{jornadaInput}
               </span>
-              <span className="text-sm font-medium text-gray-500 tracking-tight">
+              <span className="text-sm font-medium text-stone-500 tracking-tight">
                 Jornada activa para toda la peña
               </span>
             </div>
@@ -637,25 +636,25 @@ export default function AdminView({
               type="button"
               disabled={guardandoJornada}
               onClick={() => guardarNumeroJornada(Number(jornadaInput) + 1)}
-              className="px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
+              className="px-6 py-3 rounded-full bg-white/30 border border-white/50 hover:bg-white/50 text-stone-800 text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer disabled:opacity-40"
             >
               +1 Avanzar a J.{Number(jornadaInput) + 1}
             </button>
 
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200/80">
-              <span className="text-xs text-gray-400 font-semibold uppercase pl-2">Nº</span>
+            <div className="flex items-center gap-2 bg-white/30 px-3 py-1.5 rounded-full border border-white/50">
+              <span className="text-xs text-stone-400 font-semibold uppercase pl-2">Nº</span>
               <input
                 type="number"
                 min="1"
                 value={jornadaInput}
                 onChange={(e) => setJornadaInput(e.target.value)}
-                className="w-16 px-2 py-1 bg-transparent text-black text-sm font-mono font-bold text-center focus:outline-none"
+                className="w-16 px-2 py-1 bg-transparent text-stone-800 text-sm font-mono font-bold text-center focus:outline-none"
               />
               <button
                 type="button"
                 disabled={guardandoJornada}
                 onClick={() => guardarNumeroJornada(jornadaInput)}
-                className="px-5 py-2 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
+                className="px-5 py-2 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider hover:bg-stone-700 transition-all cursor-pointer disabled:opacity-40"
               >
                 {guardandoJornada ? "..." : "Fijar"}
               </button>
@@ -664,22 +663,22 @@ export default function AdminView({
         </div>
 
         {mensajeJornada && (
-          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+          <div className="p-4 rounded-2xl bg-white/40 border border-white/60 text-stone-800 text-xs font-semibold tracking-tight">
             {mensajeJornada.texto}
           </div>
         )}
       </div>
 
       {/* SECCIÓN 1: ESCÁNER OCR DE FOTO DE LA JORNADA */}
-      <div className="space-y-8 pb-12 border-b border-gray-200/80">
+      <div className="space-y-8 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
         <div>
-          <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
-            Reconocimiento Automático
-          </p>
-          <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
-            Escáner OCR · Jornada {jornadaInput}
-          </h3>
-          <p className="text-sm font-medium text-gray-500 tracking-tight mt-1">
+            <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
+              Reconocimiento Automático
+            </p>
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-stone-800">
+              Escáner OCR · Jornada {jornadaInput}
+            </h3>
+            <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
             Sube la captura oficial del boleto y el OCR extraerá los 6 enfrentamientos automáticamente.
           </p>
         </div>
@@ -689,7 +688,7 @@ export default function AdminView({
           {/* Uploader */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border border-dashed border-gray-300 hover:border-black rounded-3xl p-10 text-center cursor-pointer transition-colors bg-white hover:bg-gray-50 flex flex-col items-center justify-center min-h-[220px]"
+            className="border border-dashed border-white/60 hover:border-[#cbb29b] rounded-3xl p-10 text-center cursor-pointer transition-all bg-white/30 hover:bg-white/50 flex flex-col items-center justify-center min-h-[220px]"
           >
             <input
               ref={fileInputRef}
@@ -699,27 +698,27 @@ export default function AdminView({
               onChange={manejarSeleccionImagen}
             />
 
-            <p className="text-base font-semibold text-black mb-1">
+            <p className="text-base font-semibold text-stone-800 mb-1">
               Subir foto del boleto
             </p>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">
               Arrastra aquí o haz clic (JPG, PNG)
             </p>
           </div>
 
           {/* Preview y Acción de Escaneo */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-200/80 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
+          <div className="bg-white/30 rounded-3xl p-6 border border-white/50 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
             {imagenPreview ? (
               <div className="w-full space-y-4">
-                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-gray-200">
+                <div className="relative rounded-2xl overflow-hidden max-h-48 border border-white/50">
                   <img
                     src={imagenPreview}
                     alt="Foto Jornada"
                     className="w-full h-full object-cover"
                   />
                   {procesandoOcr && (
-                    <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center text-black p-4">
-                      <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-stone-800 p-4">
+                      <div className="w-8 h-8 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mb-3"></div>
                       <p className="text-xs font-semibold text-center">{estadoOcrTexto}</p>
                     </div>
                   )}
@@ -730,7 +729,7 @@ export default function AdminView({
                     type="button"
                     disabled={procesandoOcr}
                     onClick={ejecutarOcr}
-                    className="flex-1 py-3.5 px-6 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
+                    className="flex-1 py-3.5 px-6 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer disabled:opacity-40"
                   >
                     {procesandoOcr ? "Analizando..." : "Escanear con OCR"}
                   </button>
@@ -741,14 +740,14 @@ export default function AdminView({
                       setImagenPreview(null);
                       setTextoExtraidoRaw("");
                     }}
-                    className="px-5 py-3.5 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+                    className="px-5 py-3.5 rounded-full bg-white/30 border border-white/50 hover:bg-white/50 text-stone-800 text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer"
                   >
                     Quitar
                   </button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm font-medium text-gray-400">
+              <p className="text-sm font-medium text-stone-400">
                 Sin imagen seleccionada.
               </p>
             )}
@@ -757,7 +756,7 @@ export default function AdminView({
 
         {/* Mensaje de estado OCR */}
         {mensajePartidos && (
-          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+          <div className="p-4 rounded-2xl bg-white/40 border border-white/60 text-stone-800 text-xs font-semibold tracking-tight">
             {mensajePartidos.texto}
           </div>
         )}
@@ -766,14 +765,14 @@ export default function AdminView({
         <div id="seccion-partidos-editables" className="space-y-6 pt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+              <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
                 Verificación
               </p>
-              <h4 className="text-xl font-extrabold tracking-tight text-black">
+              <h4 className="text-xl font-extrabold tracking-tight text-stone-800">
                 Confirmar los 6 Partidos
               </h4>
             </div>
-            <span className="text-xs font-mono font-semibold text-gray-400 uppercase">
+            <span className="text-xs font-mono font-semibold text-stone-400 uppercase">
               6 Enfrentamientos
             </span>
           </div>
@@ -784,13 +783,13 @@ export default function AdminView({
               return (
                 <div
                   key={partido.id || idx}
-                  className="bg-white rounded-2xl p-5 border border-gray-200/80 space-y-3"
+                  className="bg-white/30 rounded-2xl p-5 border border-white/50 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase font-mono">
+                    <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase font-mono">
                       PARTIDO 0{idx + 1}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
                       {completado ? "Listo" : "Incompleto"}
                     </span>
                   </div>
@@ -802,12 +801,12 @@ export default function AdminView({
                         value={partido.home}
                         onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
                         placeholder="Local"
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-gray-200/80 text-xs font-semibold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-[#cbb29b]"
                       />
                     </div>
 
                     <div className="col-span-1 text-center">
-                      <span className="text-xs font-extrabold text-gray-400 tracking-wider">VS</span>
+                      <span className="text-xs font-extrabold text-stone-400 tracking-wider">VS</span>
                     </div>
 
                     <div className="col-span-2">
@@ -816,7 +815,7 @@ export default function AdminView({
                         value={partido.away}
                         onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
                         placeholder="Visitante"
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-gray-200/80 text-xs font-semibold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/30 border border-white/50 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-1 focus:ring-[#cbb29b]"
                       />
                     </div>
                   </div>
@@ -825,18 +824,17 @@ export default function AdminView({
             })}
           </div>
 
-          {/* Botones de acción */}
           <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
             {textoExtraidoRaw ? (
               <button
                 type="button"
                 onClick={() => setMostrarTextoRaw(!mostrarTextoRaw)}
-                className="text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-black transition-colors cursor-pointer"
+                className="text-xs font-semibold uppercase tracking-wider text-stone-400 hover:text-stone-800 transition-colors cursor-pointer"
               >
                 {mostrarTextoRaw ? "Ocultar texto OCR" : "Ver texto OCR en bruto"}
               </button>
             ) : (
-              <span className="text-xs text-gray-400 font-medium">Revisa los nombres antes de guardar</span>
+              <span className="text-xs text-stone-400 font-medium">Revisa los nombres antes de guardar</span>
             )}
 
             <div className="flex items-center gap-3 ml-auto">
@@ -844,7 +842,7 @@ export default function AdminView({
                 type="button"
                 onClick={reiniciarPartidos}
                 disabled={guardandoPartidos}
-                className="px-6 py-4 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
+                className="px-6 py-4 rounded-full bg-white/30 border border-white/50 hover:bg-white/50 text-stone-800 text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer disabled:opacity-40"
               >
                 Vaciar Partidos
               </button>
@@ -854,7 +852,7 @@ export default function AdminView({
                 id="btn-guardar-partidos-ocr"
                 disabled={guardandoPartidos}
                 onClick={guardarPartidosEnServidor}
-                className="px-8 py-4 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
+                className="px-8 py-4 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer disabled:opacity-40"
               >
                 {guardandoPartidos ? "Guardando..." : `Guardar Partidos (Jornada ${jornadaInput})`}
               </button>
@@ -862,24 +860,23 @@ export default function AdminView({
           </div>
 
           {mostrarTextoRaw && (
-            <div className="p-4 rounded-2xl bg-gray-100 border border-gray-200 font-mono text-xs text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+            <div className="p-4 rounded-2xl bg-white/30 border border-white/50 font-mono text-xs text-stone-600 whitespace-pre-wrap max-h-40 overflow-y-auto">
               {textoExtraidoRaw}
             </div>
           )}
         </div>
       </div>
 
-      {/* SECCIÓN 2: GESTIÓN DEL BOTE POR JORGE */}
-      <div className="space-y-8 pb-12">
+      <div className="space-y-8 pb-10 bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-6 sm:px-10 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">
+            <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-2">
               Tesorería
             </p>
-            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-black">
+            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-stone-800">
               Añadir Fondos al Bote
             </h3>
-            <p className="text-sm font-medium text-gray-500 tracking-tight mt-1">
+            <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
               Suma ganancias o aportes manuales directamente al bote acumulado.
             </p>
           </div>
@@ -888,14 +885,14 @@ export default function AdminView({
             type="button"
             onClick={reiniciarBoteACero}
             disabled={guardandoBote}
-            className="self-start sm:self-auto px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-black text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
+            className="self-start sm:self-auto px-6 py-3 rounded-full bg-white/30 border border-white/50 hover:bg-white/50 text-stone-800 text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer disabled:opacity-40"
           >
             Poner Bote a 0.00 €
           </button>
         </div>
 
         {mensajeBote && (
-          <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 text-black text-xs font-semibold tracking-tight">
+          <div className="p-4 rounded-2xl bg-white/40 border border-white/60 text-stone-800 text-xs font-semibold tracking-tight">
             {mensajeBote.texto}
           </div>
         )}
@@ -909,7 +906,7 @@ export default function AdminView({
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2 block">
+              <label className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-2 block">
                 Importe (€)
               </label>
               <input
@@ -919,12 +916,12 @@ export default function AdminView({
                 placeholder="0.00"
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-2xl bg-[#f5f5f7] border border-gray-200/80 text-base font-mono font-bold text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-base font-mono font-bold text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2 block">
+              <label className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-2 block">
                 Concepto
               </label>
               <input
@@ -932,7 +929,7 @@ export default function AdminView({
                 placeholder="Aporte, premio, etc."
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-2xl bg-[#f5f5f7] border border-gray-200/80 text-sm font-medium text-black placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                className="w-full px-4 py-3.5 rounded-2xl bg-white/30 border border-white/50 text-sm font-medium text-stone-800 placeholder:text-stone-400 focus:bg-white/50 focus:outline-none focus:ring-2 focus:ring-[#cbb29b] transition-all"
               />
             </div>
           </div>
@@ -941,7 +938,7 @@ export default function AdminView({
             <button
               type="submit"
               disabled={guardandoBote || !cantidad}
-              className="px-8 py-4 rounded-full bg-black text-white text-sm font-semibold tracking-tight hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-40"
+              className="px-10 py-4 rounded-full bg-stone-800 text-white text-sm font-semibold tracking-tight shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer disabled:opacity-40"
             >
               {guardandoBote ? "Añadiendo..." : "Añadir Fondos al Bote"}
             </button>

@@ -55,110 +55,158 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Botón menú móvil minimalista */}
-      <div className="lg:hidden fixed top-4 left-4 z-40">
-        <button
-          type="button"
-          onClick={() => setMenuMovilAbierto(!menuMovilAbierto)}
-          className="px-3 py-1.5 bg-white border border-gray-200 text-black text-xs font-bold uppercase tracking-wider rounded-full shadow-xs cursor-pointer"
-        >
-          {menuMovilAbierto ? "Cerrar" : "Menú"}
-        </button>
-      </div>
-
-      {/* Backdrop móvil */}
-      {menuMovilAbierto && (
-        <div
-          onClick={() => setMenuMovilAbierto(false)}
-          className="lg:hidden fixed inset-0 bg-black/10 z-30 transition-opacity"
-        />
-      )}
-
-      {/* Sidebar Lateral Apple Minimalismo Extremo */}
-      <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen z-40 w-72 bg-[#f5f5f7] hairline-r flex flex-col justify-between p-8 sm:p-10 overflow-y-auto transition-transform duration-300 shrink-0 ${
-          menuMovilAbierto ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
-      >
-        <div>
-          {/* Nombre de la Peña */}
-          <div className="mb-10">
-            <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase block mb-1">
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl rounded-full bg-white/30 backdrop-blur-xl border border-white/60 shadow-sm flex justify-between items-center px-4 sm:px-8 py-3 sm:py-4 z-50">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="hidden sm:block">
+            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
               PEÑA QUINIGOL
             </span>
-            <h2 className="text-xl font-extrabold tracking-tighter text-black">
+            <h2 className="text-lg font-extrabold tracking-tighter text-stone-800 leading-tight">
               QUINI-PERICO
             </h2>
           </div>
+          <h2 className="sm:hidden text-base font-extrabold tracking-tighter text-stone-800">
+            QUINI-PERICO
+          </h2>
+        </div>
 
-          {/* Información del Usuario */}
-          <div className="mb-10 hairline-b pb-6">
-            <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase block">
+        <nav className="hidden lg:flex items-center gap-1">
+          {elementosMenu.map((elem) => {
+            const activo = seccionActiva === elem.id;
+
+            return (
+              <button
+                key={elem.id}
+                type="button"
+                id={`nav-${elem.id}`}
+                onClick={() => seleccionarYcerrar(elem.id)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 cursor-pointer ${
+                  activo
+                    ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white shadow-[0_4px_15px_rgba(203,178,155,0.4)]"
+                    : "text-stone-500 hover:bg-white/50 hover:text-stone-800"
+                }`}
+              >
+                <span>{elem.nombre}</span>
+                {elem.badge && (
+                  <span className={`ml-1.5 text-[10px] font-mono ${activo ? "text-white/80" : "text-stone-400"}`}>
+                    {elem.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+          <div className="hidden md:block text-right">
+            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
               {esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
             </span>
-            <p className="text-lg font-extrabold tracking-tight text-black mt-1">
+            <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
               {nombreFormateado}
-            </p>
-            <p className="text-xs text-gray-400 font-medium mt-0.5">
-              {usuarioActivo?.aciertos ?? 0} aciertos acumulados
             </p>
           </div>
 
-          {/* Menú de Navegación Tipográfico */}
-          <nav className="space-y-3">
-            {elementosMenu.map((elem) => {
-              const activo = seccionActiva === elem.id;
-
-              return (
-                <button
-                  key={elem.id}
-                  type="button"
-                  id={`nav-${elem.id}`}
-                  onClick={() => seleccionarYcerrar(elem.id)}
-                  className={`w-full text-left py-2 transition-colors cursor-pointer flex items-baseline justify-between ${
-                    activo
-                      ? "text-black font-extrabold text-base tracking-tight"
-                      : "text-gray-400 hover:text-black font-medium text-base tracking-tight"
-                  }`}
-                >
-                  <span>{elem.nombre}</span>
-
-                  {elem.badge && (
-                    <span className="text-xs font-mono font-medium text-gray-400">
-                      {elem.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Resumen de Bote y Cerrar Sesión */}
-        <div className="hairline-t pt-8 mt-10 space-y-5">
-          <div>
-            <span className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase block">
-              BOTE TOTAL
+          <div className="hidden sm:block text-right pr-1">
+            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
+              BOTE
             </span>
-            <p className="text-3xl font-extrabold tracking-tighter text-black mt-1 font-mono">
+            <p className="text-sm font-extrabold tracking-tighter text-stone-800 font-mono leading-tight">
               {boteTotal.toFixed(2)} €
             </p>
-            <span className="text-[11px] text-gray-400 block mt-1">
-              {(boteTotal / 8).toFixed(2)} € por cada uno de los 8
-            </span>
           </div>
 
           <button
             type="button"
             id="btn-logout"
             onClick={onLogout}
-            className="text-xs font-semibold tracking-wider text-gray-400 hover:text-black uppercase transition-colors cursor-pointer block pt-2"
+            className="hidden sm:inline-flex text-[10px] font-semibold tracking-wider text-stone-400 hover:text-stone-800 uppercase transition-colors cursor-pointer"
+          >
+            Cerrar Sesión
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMenuMovilAbierto(!menuMovilAbierto)}
+            className="lg:hidden px-3 py-1.5 bg-white/30 border border-white/50 text-stone-700 text-xs font-bold uppercase tracking-wider rounded-full cursor-pointer hover:bg-white/50 transition-all duration-300"
+          >
+            {menuMovilAbierto ? "Cerrar" : "Menú"}
+          </button>
+        </div>
+      </header>
+
+      {menuMovilAbierto && (
+        <div
+          onClick={() => setMenuMovilAbierto(false)}
+          className="lg:hidden fixed inset-0 bg-stone-800/10 backdrop-blur-sm z-30 transition-opacity"
+        />
+      )}
+
+      <div
+        className={`lg:hidden fixed top-24 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl z-40 rounded-3xl bg-white/40 backdrop-blur-2xl border border-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all duration-300 ${
+          menuMovilAbierto ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
+        }`}
+      >
+        <div className="mb-6 pb-4 border-b border-white/60">
+          <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
+            {esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+          </span>
+          <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-1">
+            {nombreFormateado}
+          </p>
+          <p className="text-xs text-stone-400 font-medium mt-0.5">
+            {usuarioActivo?.aciertos ?? 0} aciertos acumulados
+          </p>
+        </div>
+
+        <nav className="space-y-1">
+          {elementosMenu.map((elem) => {
+            const activo = seccionActiva === elem.id;
+
+            return (
+              <button
+                key={`mobile-${elem.id}`}
+                type="button"
+                onClick={() => seleccionarYcerrar(elem.id)}
+                className={`w-full text-left py-2.5 px-3 rounded-2xl transition-all duration-300 cursor-pointer flex items-baseline justify-between ${
+                  activo
+                    ? "bg-gradient-to-r from-[#d9c5b2] to-[#cbb29b] text-white font-extrabold text-base tracking-tight"
+                    : "text-stone-500 hover:bg-white/50 hover:text-stone-800 font-medium text-base tracking-tight"
+                }`}
+              >
+                <span>{elem.nombre}</span>
+                {elem.badge && (
+                  <span className={`text-xs font-mono font-medium ${activo ? "text-white/80" : "text-stone-400"}`}>
+                    {elem.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mt-6 pt-5 border-t border-white/60 space-y-3">
+          <div>
+            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
+              BOTE TOTAL
+            </span>
+            <p className="text-2xl font-extrabold tracking-tighter text-stone-800 mt-1 font-mono">
+              {boteTotal.toFixed(2)} €
+            </p>
+            <span className="text-[11px] text-stone-400 block mt-1">
+              {(boteTotal / 8).toFixed(2)} € por cada uno de los 8
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-xs font-semibold tracking-wider text-stone-400 hover:text-stone-800 uppercase transition-colors cursor-pointer block pt-1"
           >
             Cerrar Sesión
           </button>
         </div>
-      </aside>
+      </div>
     </>
   );
 }
-
