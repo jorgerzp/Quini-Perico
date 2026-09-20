@@ -1,7 +1,12 @@
 import React from "react";
 import { Trophy, CheckCircle2, Clock, Crown, Target, Sparkles, ArrowRight, Award } from "lucide-react";
 
-export default function ClasificacionView({ clasificacion = [], usuarioActivo, onIrBoleto }) {
+export default function ClasificacionView({
+  clasificacion = [],
+  usuarioActivo,
+  numeroJornada = 7,
+  onIrBoleto,
+}) {
   // Ordenado por aciertos totales acumulados
   const primero = clasificacion[0];
   const segundo = clasificacion[1];
@@ -13,7 +18,7 @@ export default function ClasificacionView({ clasificacion = [], usuarioActivo, o
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black tracking-wider uppercase mb-2 border border-emerald-500/30">
-            <Target size={14} /> Ranking Oficial de Aciertos
+            <Target size={14} /> Ranking Oficial de Aciertos · Jornada {numeroJornada}
           </div>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
             Tabla Clasificatoria de los 8

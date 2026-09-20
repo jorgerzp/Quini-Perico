@@ -16,6 +16,7 @@ export default function Sidebar({
   setSeccionActiva,
   usuarioActivo,
   boteTotal,
+  numeroJornada = 7,
   onLogout,
 }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
@@ -29,7 +30,8 @@ export default function Sidebar({
       id: "boleto",
       nombre: "Boleto Quinigol",
       icono: Ticket,
-      badge: null,
+      badge: `J${numeroJornada}`,
+      badgeColor: "bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono font-bold",
     },
     {
       id: "bote",
@@ -94,7 +96,7 @@ export default function Sidebar({
 
       {/* Sidebar Lateral Opaco Apple Dark */}
       <aside
-        className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-72 apple-glass-dark flex flex-col justify-between overflow-y-auto transition-transform duration-300 shrink-0 ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen z-40 w-72 apple-glass-dark flex flex-col justify-between overflow-y-auto transition-transform duration-300 shrink-0 ${
           menuMovilAbierto ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >

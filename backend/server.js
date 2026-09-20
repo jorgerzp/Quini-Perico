@@ -45,13 +45,13 @@ async function seedDatabase() {
     if (totalJornadas === 0) {
       await prisma.jornada.create({
         data: {
-          numero: 1,
+          numero: 7,
           activa: true,
           partidos: null,
           resultados: null,
         },
       });
-      console.log("Jornada 1 activa inicializada.");
+      console.log("Jornada 7 activa inicializada.");
     }
   } catch (error) {
     console.error("Error al sembrar la base de datos:", error);
@@ -477,9 +477,40 @@ app.delete("/api/jornada/partidos", async (_req, res) => {
   }
 });
 
+// Actualizar número de jornada activa (Superadmin)
+app.post("/api/jornada/numero", async (req, res) => {
+  try {
+    const { numero } = req.body;
+    const num = parseInt(numero, 10);
+    if (isNaN(num) || num < 1) {
+      return res.status(400).json({ error: "El número de jornada debe ser un entero positivo." });
+    }
+
+    let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (!jornada) {
+      jornada = await prisma.jornada.create({
+        data: { numero: num, activa: true, partidos: null, resultados: null },
+      });
+    } else {
+      jornada = await prisma.jornada.update({
+        where: { id: jornada.id },
+        data: { numero: num },
+      });
+    }
+
+    res.json({
+      message: `Jornada activa actualizada a la Jornada ${num}.`,
+      jornada: jornada.numero,
+    });
+  } catch (error) {
+    console.error("Error al actualizar número de jornada:", error);
+    res.status(500).json({ error: "No se pudo actualizar el número de jornada." });
+  }
+});
+
 app.post("/api/jornada/partidos", async (req, res) => {
   try {
-    const { partidos, imagenBoleto } = req.body;
+    const { partidos, imagenBoleto, numeroJornada } = req.body;
 
     if (!Array.isArray(partidos) || partidos.length !== 6) {
       return res.status(400).json({ error: "Se deben definir exactamente 6 partidos para el Quinigol." });
@@ -488,7 +519,7 @@ app.post("/api/jornada/partidos", async (req, res) => {
     let jornada = await prisma.jornada.findFirst({ where: { activa: true } });
     if (!jornada) {
       jornada = await prisma.jornada.create({
-        data: { numero: 1, activa: true },
+        data: { numero: 7, activa: true },
       });
     }
 
@@ -510,6 +541,13 @@ app.post("/api/jornada/partidos", async (req, res) => {
       dataUpdate.imagenBoleto = imagenBoleto;
     }
 
+    if (numeroJornada) {
+      const num = parseInt(numeroJornada, 10);
+      if (!isNaN(num) && num >= 1) {
+        dataUpdate.numero = num;
+      }
+    }
+
     const jornadaActualizada = await prisma.jornada.update({
       where: { id: jornada.id },
       data: dataUpdate,
@@ -517,6 +555,7 @@ app.post("/api/jornada/partidos", async (req, res) => {
 
     res.json({
       message: "¡Partidos de la jornada actualizados y aplicados con éxito!",
+      jornada: jornadaActualizada.numero,
       partidos: partidosFormateados,
       imagenBoleto: jornadaActualizada.imagenBoleto,
     });

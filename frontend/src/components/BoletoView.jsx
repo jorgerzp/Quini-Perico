@@ -18,6 +18,7 @@ export default function BoletoView({
   usuarioActivo,
   onJugadaConfirmada,
   partidos = null,
+  numeroJornada = 7,
   onIrAdmin,
 }) {
   const [predictions, setPredictions] = useState(emptyPredictions);
@@ -49,15 +50,15 @@ export default function BoletoView({
             </div>
 
             <h2 className="text-2xl font-black tracking-tight text-white">
-              Aún no hay ningún quinigol disponible
+              Aún no hay quinigol para la Jornada {numeroJornada}
             </h2>
 
             <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
-              Jorge aún no ha introducido los equipos de los partidos de esta jornada. En cuanto los introduzca, aparecerán aquí para que puedas hacer tus pronósticos.
+              Jorge aún no ha introducido los equipos de los partidos de la Jornada {numeroJornada}. En cuanto los guarde en el Superadmin, aparecerán aquí automáticamente para hacer tus pronósticos.
             </p>
 
             <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
-              Jornada en espera de los equipos
+              Jornada {numeroJornada} en espera de los equipos
             </div>
           </div>
         </div>
@@ -73,11 +74,11 @@ export default function BoletoView({
           </div>
 
           <h2 className="text-2xl font-black tracking-tight text-white">
-            Introduce los Partidos de la Jornada
+            Introduce los Partidos de la Jornada {numeroJornada}
           </h2>
 
           <p className="text-sm text-slate-300 mt-2.5 max-w-md leading-relaxed">
-            Como Superadmin, debes introducir los nombres de los equipos que se enfrentan en los 6 partidos (escribiéndolos o subiendo la foto del boleto con el OCR). En cuanto los guardes, aparecerán en el boleto de toda la peña.
+            Como Superadmin, debes introducir los nombres de los equipos que se enfrentan en los 6 partidos de la Jornada {numeroJornada} (subiendo la foto del boleto con el OCR o escribiéndolos). En cuanto los guardes, aparecerán en el boleto de toda la peña.
           </p>
 
           {onIrAdmin && (
@@ -87,7 +88,7 @@ export default function BoletoView({
               className="mt-8 px-6 py-3.5 rounded-2xl bg-blue-600 border border-blue-400/40 text-white font-black text-xs uppercase tracking-wider shadow-xl hover-black-btn cursor-pointer flex items-center gap-2"
             >
               <Sparkles size={16} />
-              <span>Configurar Partidos en Superadmin</span>
+              <span>Configurar Jornada {numeroJornada} en Superadmin</span>
             </button>
           )}
         </div>
@@ -164,7 +165,7 @@ export default function BoletoView({
 
       setFeedback({
         type: "success",
-        text: `¡Boleto de ${usuarioActivo?.nombre || "la peña"} sellado y confirmado para la Jornada!`,
+        text: `¡Boleto de ${usuarioActivo?.nombre || "la peña"} sellado y confirmado para la Jornada ${numeroJornada}!`,
       });
 
       if (onJugadaConfirmada) {
@@ -212,7 +213,7 @@ export default function BoletoView({
       {/* Encabezado */}
       <section className="text-center pt-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-black tracking-wider uppercase mb-3 border border-blue-400/30">
-          <Ticket size={14} /> Boleto Oficial de la Jornada
+          <Ticket size={14} /> Boleto Oficial · Jornada {numeroJornada}
         </div>
 
         <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center justify-center gap-2">

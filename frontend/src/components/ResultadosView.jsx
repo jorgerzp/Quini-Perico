@@ -19,6 +19,7 @@ export default function ResultadosView({
   usuarioActivo,
   onResultadosGuardados,
   partidos = null,
+  numeroJornada = 7,
 }) {
   const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
@@ -76,17 +77,17 @@ export default function ResultadosView({
           </div>
 
           <h2 className="text-2xl font-black tracking-tight text-white">
-            Aún no hay ningún quinigol disponible
+            Aún no hay quinigol para la Jornada {numeroJornada}
           </h2>
 
           <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
             {esJorge
-              ? "Primero debes introducir los partidos de la jornada en el Panel Superadmin."
-              : "Jorge aún no ha configurado los partidos de esta jornada."}
+              ? `Primero debes introducir los partidos de la Jornada ${numeroJornada} en el Panel Superadmin.`
+              : `Jorge aún no ha configurado los partidos de la Jornada ${numeroJornada}.`}
           </p>
 
           <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
-            Jornada sin partidos
+            Jornada {numeroJornada} sin partidos
           </div>
         </div>
       </div>
@@ -103,15 +104,15 @@ export default function ResultadosView({
           </div>
 
           <h2 className="text-2xl font-black tracking-tight text-white">
-            Aún no hay ningún quinigol disponible
+            Resultados de la Jornada {numeroJornada} Pendientes
           </h2>
 
           <p className="text-sm text-slate-300 mt-2.5 max-w-sm leading-relaxed">
-            Jorge aún no ha introducido los resultados oficiales de los partidos de esta jornada. Vuelve a consultar una vez finalicen los encuentros.
+            Jorge aún no ha introducido los resultados oficiales de los partidos de la Jornada {numeroJornada}. Vuelve a consultar una vez finalicen los encuentros.
           </p>
 
           <div className="mt-8 px-4 py-2 rounded-full bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold">
-            Jornada en espera de escrutinio
+            Jornada {numeroJornada} en espera de escrutinio
           </div>
         </div>
       </div>
@@ -125,13 +126,13 @@ export default function ResultadosView({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-1.5 border border-emerald-500/30">
-              <CheckCircle2 size={14} className="text-emerald-400" /> Resultados Oficiales
+              <CheckCircle2 size={14} className="text-emerald-400" /> Resultados Oficiales · Jornada {numeroJornada}
             </div>
             <h2 className="text-3xl font-black tracking-tight text-white">
-              Resultados de la Jornada
+              Resultados de la Jornada {numeroJornada}
             </h2>
             <p className="text-sm text-slate-400">
-              Marcadores oficiales publicados por Jorge (Superadmin)
+              Marcadores oficiales de la Jornada {numeroJornada} publicados por Jorge (Superadmin)
             </p>
           </div>
         </div>
@@ -271,13 +272,13 @@ export default function ResultadosView({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider mb-2 border border-blue-400/30">
-            <ShieldCheck size={14} /> Control Exclusivo de Jorge (Superadmin)
+            <ShieldCheck size={14} /> Control Exclusivo de Jorge (Superadmin) · Jornada {numeroJornada}
           </div>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-            Poner Resultados de la Jornada
+            Poner Resultados · Jornada {numeroJornada}
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Introduce los marcadores (0, 1, 2, M) para publicar y calcular los aciertos de la peña
+            Introduce los marcadores (0, 1, 2, M) para publicar y calcular los aciertos de la Jornada {numeroJornada}
           </p>
         </div>
 

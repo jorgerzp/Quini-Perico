@@ -3,9 +3,15 @@ import { Coins, TrendingUp, Users, ArrowUpRight, ShieldCheck, Plus, Calendar, Ta
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 
-export default function BoteView({ bote, onIrAdmin, usuarioActivo, onBoteActualizado }) {
+export default function BoteView({
+  bote,
+  onIrAdmin,
+  usuarioActivo,
+  numeroJornada = 7,
+  onBoteActualizado,
+}) {
   const [cantidad, setCantidad] = useState("");
-  const [jornada, setJornada] = useState("1");
+  const [jornada, setJornada] = useState(() => String(numeroJornada || 7));
   const [aciertos, setAciertos] = useState("11 aciertos");
   const [fecha, setFecha] = useState(() => new Date().toISOString().split("T")[0]);
   const [concepto, setConcepto] = useState("");

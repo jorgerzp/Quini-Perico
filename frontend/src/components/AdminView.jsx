@@ -21,14 +21,28 @@ import confetti from "canvas-confetti";
 import { createWorker } from "tesseract.js";
 import { API_URL } from "../config";
 
-// Equipos comunes del fútbol español para enriquecer y emparejar texto OCR
+// Equipos comunes del fútbol español y competiciones oficiales para enriquecer y emparejar texto OCR
 const EQUIPOS_CONOCIDOS = [
-  "Real Madrid", "FC Barcelona", "Atlético de Madrid", "Athletic Club",
-  "Real Betis", "Sevilla FC", "Valencia CF", "Villarreal CF",
-  "Real Sociedad", "Girona FC", "RCD Espanyol", "RC Celta de Vigo",
-  "CA Osasuna", "Rayo Vallecano", "RCD Mallorca", "Getafe CF",
-  "UD Las Palmas", "Deportivo Alavés", "CD Leganés", "Real Valladolid",
-  "SD Eibar", "Levante UD", "Real Sporting", "Racing de Santander"
+  // LaLiga EA Sports
+  "Real Madrid", "FC Barcelona", "Barcelona", "Barça", "Atlético de Madrid", "At. Madrid", "Atlético",
+  "Athletic Club", "Athletic", "Real Betis", "Betis", "Sevilla FC", "Sevilla", "Valencia CF", "Valencia",
+  "Villarreal CF", "Villarreal", "Real Sociedad", "R. Sociedad", "Girona FC", "Girona", "RCD Espanyol", "Espanyol",
+  "RC Celta de Vigo", "Celta de Vigo", "Celta", "CA Osasuna", "Osasuna", "Rayo Vallecano", "Rayo",
+  "RCD Mallorca", "Mallorca", "Getafe CF", "Getafe", "UD Las Palmas", "Las Palmas", "Deportivo Alavés", "Alavés",
+  "CD Leganés", "Leganés", "Real Valladolid", "Valladolid",
+  // LaLiga Hypermotion
+  "SD Eibar", "Eibar", "Levante UD", "Levante", "Real Sporting", "Sporting de Gijón", "Sporting",
+  "Racing de Santander", "Racing", "Real Oviedo", "Oviedo", "Elche CF", "Elche", "Granada CF", "Granada",
+  "UD Almería", "Almería", "Cádiz CF", "Cádiz", "CD Tenerife", "Tenerife", "Real Zaragoza", "Zaragoza",
+  "Burgos CF", "Burgos", "Albacete BP", "Albacete", "SD Huesca", "Huesca", "CD Castellón", "Castellón",
+  "Málaga CF", "Málaga", "Deportivo de La Coruña", "Deportivo", "Dep. Coruña", "Racing de Ferrol", "Ferrol",
+  "FC Cartagena", "Cartagena", "CD Mirandés", "Mirandés", "Córdoba CF", "Córdoba", "CD Eldense", "Eldense",
+  // Internacionales / Champions habituales en Quinigol
+  "Manchester City", "Man. City", "Arsenal", "Liverpool", "Aston Villa", "Chelsea", "Manchester United",
+  "Bayern München", "Bayern", "Borussia Dortmund", "Dortmund", "Bayer Leverkusen", "Leverkusen", "RB Leipzig",
+  "Paris Saint-Germain", "PSG", "Monaco", "Marseille", "Lille",
+  "Inter", "Inter de Milán", "Juventus", "Milan", "AC Milan", "Atalanta", "Roma", "Napoli", "Lazio",
+  "Benfica", "Sporting CP", "Porto", "PSV", "Feyenoord", "Ajax"
 ];
 
 export default function AdminView({
@@ -40,8 +54,22 @@ export default function AdminView({
   onActualizarUsuarios,
   partidosActuales = [],
   onPartidosActualizados,
+  numeroJornada = 7,
+  onJornadaActualizada,
 }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
+
+  // Estado Jornada Activa
+  const [jornadaInput, setJornadaInput] = useState(numeroJornada || 7);
+  const [guardandoJornada, setGuardandoJornada] = useState(false);
+  const [mensajeJornada, setMensajeJornada] = useState(null);
+
+  // Sincronizar número de jornada si viene del padre
+  React.useEffect(() => {
+    if (numeroJornada) {
+      setJornadaInput(numeroJornada);
+    }
+  }, [numeroJornada]);
 
   // Estado OCR
   const [imagenPreview, setImagenPreview] = useState(null);
@@ -51,7 +79,7 @@ export default function AdminView({
   const [textoExtraidoRaw, setTextoExtraidoRaw] = useState("");
   const [mostrarTextoRaw, setMostrarTextoRaw] = useState(false);
 
-  // 6 Partidos de la Jornada (Vacíos hasta que Jorge los introduzca)
+  // 6 Partidos de la Jornada
   const [partidosEditables, setPartidosEditables] = useState(() => {
     if (partidosActuales && partidosActuales.length === 6) {
       return partidosActuales;
@@ -94,6 +122,40 @@ export default function AdminView({
     );
   }
 
+  // Guardar número de jornada activa (Superadmin)
+  const guardarNumeroJornada = async (numNuevo) => {
+    const val = parseInt(numNuevo, 10);
+    if (isNaN(val) || val < 1) {
+      setMensajeJornada({ tipo: "error", texto: "Introduce un número de jornada válido (1 o superior)." });
+      return;
+    }
+
+    setGuardandoJornada(true);
+    setMensajeJornada(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/jornada/numero`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numero: val }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo actualizar la jornada.");
+
+      setJornadaInput(data.jornada || val);
+      setMensajeJornada({
+        tipo: "success",
+        texto: `¡Jornada ${data.jornada || val} fijada como oficial para toda la peña!`,
+      });
+
+      if (onJornadaActualizada) onJornadaActualizada(data.jornada || val);
+    } catch (err) {
+      setMensajeJornada({ tipo: "error", texto: err.message });
+    } finally {
+      setGuardandoJornada(false);
+    }
+  };
+
   // Manejo de subida de archivo
   const manejarSeleccionImagen = (e) => {
     const file = e.target.files?.[0];
@@ -107,73 +169,103 @@ export default function AdminView({
     reader.readAsDataURL(file);
   };
 
-  // Parser heurístico para extraer los 6 partidos del texto de la foto
+  // Parser heurístico avanzado para extraer los 6 partidos del texto de la foto
   const parsearTextoQuinigol = (text) => {
+    if (!text || typeof text !== "string") return partidosEditables;
+
     const lineas = text
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => l.length > 2);
+      .filter((l) => {
+        const lower = l.toLowerCase();
+        if (l.length < 2) return false;
+        if (lower.includes("quinigol") || lower.includes("loterias") || lower.includes("apuestas")) return false;
+        if (lower.includes("pronostico") || lower.includes("fecha") || lower.includes("domingo") || lower.includes("sabado")) return false;
+        return true;
+      });
 
     const partidosEncontrados = [];
 
-    // Intentar buscar líneas con guiones ("Local - Visitante" o "1. Local - Visitante")
+    // Estrategia 1: Líneas que empiezan con número 1 al 6
+    // Ej: "1. Real Madrid - Barcelona", "1 Barcelona vs Girona", "1 REAL MADRID    BARCELONA"
+    const regexNumerado = /^[pP]?([1-6])[\.\-\s\:\)]+\s*([A-Za-zÁÉÍÓÚáéíóúÑñ\.\s]+?)(?:\s*[-–—vsVS/]+\s*|\s{2,}|\t)(.+)$/;
+
     for (const linea of lineas) {
-      // Separadores típicos: "-", " - ", "—", "vs", "VS"
-      const separadores = [" - ", " – ", " — ", "-", " vs ", " VS ", " vs. "];
-      let partes = null;
+      const match = linea.match(regexNumerado);
+      if (match) {
+        const pNum = parseInt(match[1], 10);
+        let home = match[2].trim().replace(/\d+$/, "").trim();
+        let away = match[3].trim().replace(/\d+$/, "").trim();
+        if (home.length > 1 && away.length > 1) {
+          partidosEncontrados[pNum - 1] = { home, away };
+        }
+      }
+    }
+
+    // Estrategia 2: Líneas con separadores claros (" - ", " – ", " — ", " vs ", " VS ")
+    const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / "];
+    for (const linea of lineas) {
+      if (partidosEncontrados.filter(Boolean).length >= 6) break;
 
       for (const sep of separadores) {
         if (linea.includes(sep)) {
           const split = linea.split(sep);
-          if (split.length >= 2 && split[0].trim().length > 1 && split[1].trim().length > 1) {
-            partes = [split[0].trim(), split[1].trim()];
+          if (split.length >= 2) {
+            let h = split[0].replace(/^[pP]?\d+[\.\-\s\:\)]+/, "").trim();
+            let a = split[1].replace(/[\.\-\s\:\)]+\d+$/, "").replace(/\d+$/, "").trim();
+            if (h.length > 1 && a.length > 1) {
+              for (let i = 0; i < 6; i++) {
+                if (!partidosEncontrados[i]) {
+                  partidosEncontrados[i] = { home: h, away: a };
+                  break;
+                }
+              }
+            }
             break;
           }
         }
       }
-
-      if (partes) {
-        // Limpiar números de partido iniciales tipo "1.", "1 -", "P1", etc.
-        let localLimpio = partes[0].replace(/^(\d+[\.\-\s]+|[pP]\d+[\.\-\s]+)/, "").trim();
-        let visitanteLimpio = partes[1].replace(/(\d+[\.\-\s]+|[pP]\d+[\.\-\s]+)$/, "").trim();
-
-        if (localLimpio && visitanteLimpio) {
-          partidosEncontrados.push({
-            home: localLimpio,
-            away: visitanteLimpio,
-          });
-        }
-      }
-
-      if (partidosEncontrados.length === 6) break;
     }
 
-    // Si encontró menos de 6, buscar nombres de equipos conocidos en el texto
-    if (partidosEncontrados.length < 6) {
-      const textoLower = text.toLowerCase();
-      const equiposHallados = [];
-
-      for (const equipo of EQUIPOS_CONOCIDOS) {
-        if (textoLower.includes(equipo.toLowerCase())) {
-          equiposHallados.push(equipo);
-        }
+    // Estrategia 3: Búsqueda de equipos conocidos en el texto en orden de aparición
+    const textoLimpio = text.replace(/[\r\n]+/g, " ");
+    const equiposDetectados = [];
+    for (const eq of EQUIPOS_CONOCIDOS) {
+      const regex = new RegExp(`\\b${eq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "i");
+      const idx = textoLimpio.search(regex);
+      if (idx !== -1) {
+        equiposDetectados.push({ nombre: eq, pos: idx });
       }
+    }
+    equiposDetectados.sort((a, b) => a.pos - b.pos);
 
-      // Emparejar de 2 en 2
-      while (partidosEncontrados.length < 6 && equiposHallados.length >= 2) {
-        const home = equiposHallados.shift();
-        const away = equiposHallados.shift();
-        partidosEncontrados.push({ home, away });
+    // Evitar duplicados consecutivos
+    const equiposUnicos = [];
+    for (const eq of equiposDetectados) {
+      if (!equiposUnicos.some(e => Math.abs(e.pos - eq.pos) < 3 || e.nombre.toLowerCase() === eq.nombre.toLowerCase())) {
+        equiposUnicos.push(eq);
       }
     }
 
-    // Completar hasta 6 con los valores previos si no se reconocieron los 6
+    // Emparejar de 2 en 2 para los huecos restantes
+    let eqIdx = 0;
+    for (let i = 0; i < 6; i++) {
+      if (!partidosEncontrados[i] && eqIdx + 1 < equiposUnicos.length) {
+        partidosEncontrados[i] = {
+          home: equiposUnicos[eqIdx].nombre,
+          away: equiposUnicos[eqIdx + 1].nombre,
+        };
+        eqIdx += 2;
+      }
+    }
+
+    // Si aún faltan huecos y no se reconoció nada, conservar lo previo
     const nuevosPartidos = partidosEditables.map((p, idx) => {
       if (partidosEncontrados[idx]) {
         return {
           ...p,
-          home: partidosEncontrados[idx].home,
-          away: partidosEncontrados[idx].away,
+          home: partidosEncontrados[idx].home || p.home,
+          away: partidosEncontrados[idx].away || p.away,
         };
       }
       return p;
@@ -191,34 +283,42 @@ export default function AdminView({
 
     setProcesandoOcr(true);
     setProgresoOcr(0);
-    setEstadoOcrTexto("Inicializando motor OCR de alta precisión...");
+    setEstadoOcrTexto("Iniciando motor OCR de reconocimiento...");
     setMensajePartidos(null);
 
     try {
       const worker = await createWorker("spa");
 
       setEstadoOcrTexto("Escaneando nombres de equipos en la foto...");
-
       const ret = await worker.recognize(imagenPreview);
       await worker.terminate();
 
       const texto = ret.data.text || "";
       setTextoExtraidoRaw(texto);
 
-      setEstadoOcrTexto("Analizando y emparejando los 6 partidos...");
+      setEstadoOcrTexto("Emparejando equipos y rellenando los 6 partidos...");
       const partidosParseados = parsearTextoQuinigol(texto);
 
+      // Rellenar los inputs editables inmediatamente
       setPartidosEditables(partidosParseados);
       setProgresoOcr(100);
 
       setMensajePartidos({
         tipo: "success",
-        texto: "¡OCR completado! Se han extraído los 6 partidos. Revisa los nombres y pulsa 'Guardar Partidos'.",
+        texto: "¡OCR completado! Se han leído los enfrentamientos y cargado en los 6 partidos de abajo. Revísalos o corrígelos antes de pulsar 'Guardar y Aplicar Partidos'.",
       });
 
+      // Scroll suave hacia la sección de confirmación de partidos
+      setTimeout(() => {
+        const el = document.getElementById("seccion-partidos-editables");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 250);
+
       confetti({
-        particleCount: 60,
-        spread: 60,
+        particleCount: 70,
+        spread: 70,
         origin: { y: 0.5 },
       });
     } catch (err) {
@@ -253,6 +353,7 @@ export default function AdminView({
         body: JSON.stringify({
           partidos: partidosEditables,
           imagenBoleto: imagenPreview || null,
+          numeroJornada: jornadaInput,
         }),
       });
 
@@ -261,11 +362,11 @@ export default function AdminView({
 
       setMensajePartidos({
         tipo: "success",
-        texto: "¡Partidos oficiales de la jornada actualizados y aplicados para toda la peña!",
+        texto: `¡Partidos oficiales de la Jornada ${data.jornada || jornadaInput} guardados y aplicados para toda la peña!`,
       });
 
       if (onPartidosActualizados) {
-        onPartidosActualizados(data.partidos);
+        onPartidosActualizados(data.partidos, data.jornada || jornadaInput);
       }
 
       confetti({
@@ -414,6 +515,75 @@ export default function AdminView({
         </button>
       </div>
 
+      {/* CONTROL OFICIAL DE NÚMERO DE JORNADA */}
+      <div className="apple-card-opaque rounded-3xl p-6 sm:p-7 border border-white/12 shadow-2xl flex flex-wrap items-center justify-between gap-5">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center font-mono shadow-lg shadow-blue-500/25 border border-white/20">
+            <span className="text-[10px] font-bold text-blue-200 uppercase leading-none">JORNADA</span>
+            <span className="text-2xl font-black leading-none mt-0.5">{jornadaInput}</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-400">
+                Jornada Oficial en Curso
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold">
+                Jornada {jornadaInput}
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-white">
+              Edición y Número de la Jornada
+            </h3>
+            <p className="text-xs text-slate-400">
+              Actualmente se muestra la <strong>Jornada {jornadaInput}</strong> a toda la peña. Puedes cambiarla o avanzar a la siguiente cuando toque.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={guardandoJornada}
+            onClick={() => guardarNumeroJornada(Number(jornadaInput) + 1)}
+            className="px-4 py-2.5 rounded-xl bg-slate-900 border border-white/20 text-xs font-bold text-white hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
+          >
+            <span>+1 Avanzar a Jornada {Number(jornadaInput) + 1}</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/15">
+            <span className="text-xs text-slate-400 font-bold">Nº:</span>
+            <input
+              type="number"
+              min="1"
+              value={jornadaInput}
+              onChange={(e) => setJornadaInput(e.target.value)}
+              className="w-16 px-2 py-1 rounded-lg bg-black text-white text-xs font-mono font-bold text-center border border-white/15 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              disabled={guardandoJornada}
+              onClick={() => guardarNumeroJornada(jornadaInput)}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-black transition-all cursor-pointer hover-black-btn disabled:opacity-50"
+            >
+              {guardandoJornada ? "Guardando..." : "Fijar"}
+            </button>
+          </div>
+        </div>
+
+        {mensajeJornada && (
+          <div
+            className={`w-full p-3 rounded-xl text-xs font-bold flex items-center gap-2 border animate-in fade-in duration-200 ${
+              mensajeJornada.tipo === "success"
+                ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-300"
+                : "bg-red-950/80 border-red-500/40 text-red-300"
+            }`}
+          >
+            <CheckCircle2 size={15} />
+            <span>{mensajeJornada.texto}</span>
+          </div>
+        )}
+      </div>
+
       {/* SECCIÓN 1: ESCÁNER OCR DE FOTO DE LA JORNADA */}
       <div className="apple-card-opaque rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/12">
         <div className="flex items-center justify-between gap-4 mb-6">
@@ -423,10 +593,10 @@ export default function AdminView({
             </div>
             <div>
               <h3 className="text-xl font-black text-white tracking-tight">
-                Escáner OCR: Foto de la Jornada
+                Escáner OCR: Foto de la Jornada {jornadaInput}
               </h3>
               <p className="text-xs text-slate-400">
-                Sube la foto del boleto o calendario y el OCR extraerá los 6 partidos automáticamente
+                Sube la foto del boleto o calendario y el OCR extraerá los 6 partidos y los rellenará abajo para que puedas confirmarlos antes de guardar
               </p>
             </div>
           </div>
@@ -530,56 +700,78 @@ export default function AdminView({
           </div>
         )}
 
-        {/* Partidos Extraídos / Editables */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-              <FileText size={16} className="text-blue-400" />
-              Equipos de los 6 Partidos del Quinigol
-            </h4>
-            <span className="text-[11px] text-slate-400">
-              Puedes editar directamente cualquier nombre antes de guardar
+        {/* Partidos Extraídos / Editables (Confirmar antes de Guardar) */}
+        <div id="seccion-partidos-editables" className="space-y-4 pt-4 border-t border-white/10">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div>
+              <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <FileText size={18} className="text-blue-400" />
+                Revisar y Confirmar los 6 Partidos de la Jornada {jornadaInput}
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Los equipos leídos con el OCR se rellenan aquí. Puedes corregir cualquier nombre antes de aplicar.
+              </p>
+            </div>
+            <span className="text-[11px] px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono font-bold">
+              6 Enfrentamientos
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {partidosEditables.map((partido, idx) => (
-              <div
-                key={partido.id || idx}
-                className="apple-card-inner rounded-2xl p-3.5 border border-white/10 hover-black-card"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded-lg bg-black text-blue-400 font-mono font-black text-[10px] border border-white/10">
-                    PARTIDO 0{idx + 1}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium">Local vs Visitante</span>
+            {partidosEditables.map((partido, idx) => {
+              const completado = Boolean(partido.home && partido.away);
+              return (
+                <div
+                  key={partido.id || idx}
+                  className={`apple-card-inner rounded-2xl p-4 border transition-all ${
+                    completado ? "border-emerald-500/40 bg-emerald-950/20" : "border-white/10"
+                  } hover-black-card`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-black text-blue-400 font-mono font-black text-[11px] border border-white/10">
+                      PARTIDO 0{idx + 1}
+                    </span>
+                    {completado ? (
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Check size={12} /> Confirmado
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">Por rellenar</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Local */}
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Local</label>
+                      <input
+                        type="text"
+                        value={partido.home}
+                        onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
+                        placeholder={`Equipo Local 0${idx + 1}`}
+                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
+                      />
+                    </div>
+
+                    <span className="text-[10px] font-black text-blue-400 px-1.5 py-1 rounded bg-blue-950/60 border border-blue-500/30 mt-4">
+                      VS
+                    </span>
+
+                    {/* Visitante */}
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Visitante</label>
+                      <input
+                        type="text"
+                        value={partido.away}
+                        onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
+                        placeholder={`Equipo Visitante 0${idx + 1}`}
+                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
+                      />
+                    </div>
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Local */}
-                  <input
-                    type="text"
-                    value={partido.home}
-                    onChange={(e) => actualizarEquipo(idx, "home", e.target.value)}
-                    placeholder={`Local ${idx + 1}`}
-                    className="flex-1 px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
-                  />
-
-                  <span className="text-[10px] font-black text-blue-400 px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-500/30">
-                    VS
-                  </span>
-
-                  {/* Visitante */}
-                  <input
-                    type="text"
-                    value={partido.away}
-                    onChange={(e) => actualizarEquipo(idx, "away", e.target.value)}
-                    placeholder={`Visitante ${idx + 1}`}
-                    className="flex-1 px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Botón Guardar Partidos de la Jornada */}
@@ -593,7 +785,7 @@ export default function AdminView({
                 {mostrarTextoRaw ? "Ocultar texto OCR en bruto" : "Ver texto OCR reconocido"}
               </button>
             ) : (
-              <span className="text-xs text-slate-500">Introduce los nombres de los 6 enfrentamientos</span>
+              <span className="text-xs text-slate-500">Revisa los nombres antes de guardar</span>
             )}
 
             <div className="flex items-center gap-3 ml-auto">
@@ -615,7 +807,7 @@ export default function AdminView({
                 className="px-6 py-3.5 rounded-xl bg-emerald-600 border border-emerald-400/40 text-white font-black text-xs tracking-wider uppercase shadow-xl hover:bg-black transition-all cursor-pointer flex items-center gap-2 hover-black-btn disabled:opacity-50"
               >
                 <Save size={16} />
-                <span>{guardandoPartidos ? "Guardando..." : "Guardar y Aplicar Partidos"}</span>
+                <span>{guardandoPartidos ? "Guardando..." : `Guardar y Aplicar Partidos (Jornada ${jornadaInput})`}</span>
               </button>
             </div>
           </div>
