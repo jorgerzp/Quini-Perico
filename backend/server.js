@@ -430,18 +430,13 @@ app.post("/api/jugadas", async (req, res) => {
       },
     });
 
-    let jugada;
     if (jugadaExistente) {
-      jugada = await prisma.jugada.update({
-        where: { id: jugadaExistente.id },
-        data: {
-          pronosticos: serializado,
-          numeros: serializado,
-        },
-        include: { usuario: true },
+      return res.status(400).json({
+        error: `Ya has registrado tu apuesta para la Jornada ${jornada.numero}. No es posible volver a sellar.`,
       });
-    } else {
-      jugada = await prisma.jugada.create({
+    }
+
+    const jugada = await prisma.jugada.create({
         data: {
           usuarioId: usuario.id,
           jornadaId: jornada.id,

@@ -24,18 +24,28 @@ export default function BoletoView({
   const [predictions, setPredictions] = useState(emptyPredictions);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [apuestaRecienGuardada, setApuestaRecienGuardada] = useState(false);
 
   const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
   const userName = usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
 
-  // Cargar jugada previa del usuario sólo cuando cambia el ID de usuario activo o el número de jornada
+  // Resetear estado al cambiar de usuario o jornada
   useEffect(() => {
-    // Si usuarioActivo tiene jugadaActual para esta misma jornada activa, cargarla
-    const coincideJornada =
-      !usuarioActivo?.jornadaActualNumero ||
-      Number(usuarioActivo.jornadaActualNumero) === Number(numeroJornada);
+    setApuestaRecienGuardada(false);
+  }, [usuarioActivo?.id, numeroJornada]);
 
+  // Si usuarioActivo tiene jugadaActual para esta misma jornada activa, o acaba de guardarla
+  const coincideJornada =
+    !usuarioActivo?.jornadaActualNumero ||
+    Number(usuarioActivo.jornadaActualNumero) === Number(numeroJornada);
+
+  const yaHaJugado = Boolean(
+    apuestaRecienGuardada ||
+    (usuarioActivo?.haJugado && coincideJornada)
+  );
+
+  useEffect(() => {
     if (usuarioActivo?.jugadaActual && coincideJornada) {
       try {
         const parsed =
@@ -57,7 +67,7 @@ export default function BoletoView({
       setPredictions(emptyPredictions);
     }
     setFeedback(null);
-  }, [usuarioActivo?.id, numeroJornada]);
+  }, [usuarioActivo?.id, numeroJornada, coincideJornada]);
 
   let totalSubmitted = 0;
   Object.values(predictions).forEach((p) => {
@@ -144,6 +154,39 @@ export default function BoletoView({
     );
   }
 
+  // SI EL USUARIO YA HA JUGADO EN ESTA JORNADA: MOSTRAR EXCLUSIVAMENTE EL MENSAJE DE CORRECTAMENTE GUARDADA
+  if (yaHaJugado) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto py-12 sm:py-20 animate-in fade-in duration-300">
+        <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-14 text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-stone-900 text-white mx-auto flex items-center justify-center shadow-lg shadow-black/20">
+            <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <div>
+            <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-2 font-mono">
+              JORNADA {numeroJornada} · APUESTA OFICIAL
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tighter text-stone-800">
+              Apuesta guardada correctamente
+            </h2>
+            <p className="text-sm sm:text-base text-stone-600 font-medium mt-4 leading-relaxed max-w-md mx-auto">
+              Tu apuesta para la Jornada {numeroJornada} ha sido registrada y sellada con éxito. Ya no es posible volver a rellenarla hasta que el Superadmin cree una nueva jornada.
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <p className="text-xs text-stone-500 font-medium bg-white/40 border border-white/60 rounded-2xl py-3 px-5 inline-block">
+              En cuanto Jorge acepte todas las apuestas, podrás consultar los resultados de todos los participantes en la sección <strong>Resultados</strong>.
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   // PARTIDOS DISPONIBLES: RENDERIZAR BOLETO
   const handleSelectGoal = (matchKey, side, value) => {
     setPredictions((prev) => {
@@ -184,6 +227,8 @@ export default function BoletoView({
   };
 
   const handleConfirmTicket = async () => {
+    if (submitting || yaHaJugado) return;
+
     if (!isComplete) {
       setFeedback({
         type: "error",
@@ -222,17 +267,14 @@ export default function BoletoView({
         origin: { y: 0.6 },
       });
 
-      setFeedback({
-        type: "success",
-        text: `Apuesta sellada y confirmada para la Jornada ${numeroJornada}.`,
-      });
+      // Pasar de inmediato al estado guardado para quitar el formulario y evitar clics duplicados
+      setApuestaRecienGuardada(true);
 
       if (onJugadaConfirmada) {
         onJugadaConfirmada();
       }
     } catch (err) {
       setFeedback({ type: "error", text: err.message });
-    } finally {
       setSubmitting(false);
     }
   };
@@ -265,15 +307,10 @@ export default function BoletoView({
           APUESTA DE {userName}
         </h2>
 
-        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-6">
-          <div className="flex items-baseline gap-3">
-            <span className="text-4xl md:text-5xl font-extrabold tracking-tighter text-stone-800 font-mono">
-              {totalSubmitted}/12
-            </span>
-            <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
-              {isComplete ? "PRONÓSTICOS COMPLETADOS" : `FALTAN ${12 - totalSubmitted} POR PRONOSTICAR`}
-            </span>
-          </div>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-6">
+          <span className="text-xs font-semibold tracking-widest uppercase text-stone-400">
+            Pronostica los goles (0, 1, 2, M) de los 6 partidos
+          </span>
 
           <div className="flex items-center gap-4">
             <button
@@ -417,12 +454,12 @@ export default function BoletoView({
         <button
           type="button"
           id="btn-confirmar-boleto"
-          disabled={submitting || !isComplete || Boolean(usuarioCoincidente)}
+          disabled={submitting || !isComplete || Boolean(usuarioCoincidente) || yaHaJugado}
           onClick={handleConfirmTicket}
           className={`w-full py-4 px-8 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
             usuarioCoincidente
               ? "bg-red-950/40 border border-red-500/30 text-red-300 cursor-not-allowed"
-              : isComplete
+              : isComplete && !yaHaJugado && !submitting
               ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 hover-negro-brillante cursor-pointer"
               : "bg-white/30 border border-white/50 text-stone-400 cursor-not-allowed"
           }`}
@@ -438,8 +475,8 @@ export default function BoletoView({
           {usuarioCoincidente
             ? "Modifica cualquier pronóstico para poder sellar"
             : isComplete
-            ? "12 de 12 pronósticos listos para el escrutinio"
-            : `Completa los ${12 - totalSubmitted} goles restantes para sellar`}
+            ? "12 pronósticos listos para el escrutinio"
+            : "Completa todos los pronósticos para sellar"}
         </p>
       </section>
     </div>
