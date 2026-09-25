@@ -1247,12 +1247,10 @@ app.post("/api/ia/pronostico", async (req, res) => {
       });
     }
 
+    const grokKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
 
-    // 1. Intentar con Google Gemini API si la clave está configurada
-    if (geminiKey && geminiKey.trim().length > 10) {
-      try {
-        const promptText = `Eres el analista jefe de fútbol de la peña QUINI-PERICO y un maestro en pronósticos de Quinigol.
+    const promptText = `Eres el analista jefe de fútbol de la peña QUINI-PERICO y un maestro en pronósticos de Quinigol.
 Analiza minuciosamente los siguientes 6 partidos de la jornada:
 ${partidos.map((p, idx) => `Partido ${idx + 1}: ${p.home || `Local ${idx + 1}`} vs ${p.away || `Visitante ${idx + 1}`}`).join("\n")}
 
@@ -1291,8 +1289,56 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
   "resumenIA": "Breve balance táctico general del boleto (1-2 párrafos que den prestigio y confianza al usuario)."
 }`;
 
+    // 1. Intentar con xAI Grok si la clave está configurada
+    if (grokKey && grokKey.trim().length > 10) {
+      try {
+        const grokRes = await fetch("https://api.x.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${grokKey.trim()}`,
+          },
+          body: JSON.stringify({
+            model: "grok-beta",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Eres un analista de fútbol de élite y experto en Quinigol. Respondes exclusivamente en formato JSON válido según la estructura requerida.",
+              },
+              { role: "user", content: promptText },
+            ],
+            temperature: 0.35,
+          }),
+        });
+
+        if (grokRes.ok) {
+          const grokData = await grokRes.json();
+          const rawText = grokData.choices?.[0]?.message?.content;
+          if (rawText) {
+            const cleanJson = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(cleanJson);
+            if (parsed.pronosticos && parsed.analisis) {
+              return res.json({
+                ...parsed,
+                fuente: "xAI Grok ✨",
+                modelo: grokData.model || "grok-beta",
+              });
+            }
+          }
+        } else {
+          console.warn("Llamada a Grok API devolvió status no ok:", grokRes.status);
+        }
+      } catch (grokErr) {
+        console.warn("Fallo o timeout en Grok API, intentando fallback:", grokErr.message);
+      }
+    }
+
+    // 2. Intentar con Google Gemini API si está configurada
+    if (geminiKey && geminiKey.trim().length > 10) {
+      try {
         const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey.trim()}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
