@@ -1,146 +1,7 @@
 import React, { useState, useRef } from "react";
 import confetti from "canvas-confetti";
-import { createWorker } from "tesseract.js";
 import { API_URL } from "../config";
-
-// Equipos y variantes comunes del fútbol español y europeo para enriquecer y emparejar texto OCR
-const CANONICAL_TEAMS = {
-  "real madrid": "Real Madrid",
-  "r madrid": "Real Madrid",
-  "madrid": "Real Madrid",
-  "fc barcelona": "FC Barcelona",
-  "barcelona": "FC Barcelona",
-  "barca": "FC Barcelona",
-  "barça": "FC Barcelona",
-  "atletico de madrid": "Atlético de Madrid",
-  "atletico madrid": "Atlético de Madrid",
-  "atletico": "Atlético de Madrid",
-  "at madrid": "Atlético de Madrid",
-  "athletic club": "Athletic Club",
-  "athletic": "Athletic Club",
-  "bilbao": "Athletic Club",
-  "real betis": "Real Betis",
-  "r betis": "Real Betis",
-  "betis": "Real Betis",
-  "sevilla fc": "Sevilla FC",
-  "sevilla": "Sevilla FC",
-  "valencia cf": "Valencia CF",
-  "valencia": "Valencia CF",
-  "villarreal cf": "Villarreal CF",
-  "villarreal": "Villarreal CF",
-  "real sociedad": "Real Sociedad",
-  "r sociedad": "Real Sociedad",
-  "la real": "Real Sociedad",
-  "girona fc": "Girona FC",
-  "girona": "Girona FC",
-  "rcd espanyol": "RCD Espanyol",
-  "espanyol": "RCD Espanyol",
-  "rc celta de vigo": "RC Celta",
-  "celta de vigo": "RC Celta",
-  "celta": "RC Celta",
-  "ca osasuna": "CA Osasuna",
-  "osasuna": "CA Osasuna",
-  "rayo vallecano": "Rayo Vallecano",
-  "rayo": "Rayo Vallecano",
-  "rcd mallorca": "RCD Mallorca",
-  "mallorca": "RCD Mallorca",
-  "getafe cf": "Getafe CF",
-  "getafe": "Getafe CF",
-  "ud las palmas": "UD Las Palmas",
-  "las palmas": "UD Las Palmas",
-  "deportivo alaves": "Deportivo Alavés",
-  "alaves": "Deportivo Alavés",
-  "cd leganes": "CD Leganés",
-  "leganes": "CD Leganés",
-  "real valladolid": "Real Valladolid",
-  "r valladolid": "Real Valladolid",
-  "valladolid": "Real Valladolid",
-  // LaLiga Hypermotion
-  "sd eibar": "SD Eibar",
-  "eibar": "SD Eibar",
-  "levante ud": "Levante UD",
-  "levante": "Levante UD",
-  "real sporting": "Sporting de Gijón",
-  "sporting de gijon": "Sporting de Gijón",
-  "sporting": "Sporting de Gijón",
-  "racing de santander": "Racing de Santander",
-  "racing santander": "Racing de Santander",
-  "racing": "Racing de Santander",
-  "real oviedo": "Real Oviedo",
-  "oviedo": "Real Oviedo",
-  "elche cf": "Elche CF",
-  "elche": "Elche CF",
-  "granada cf": "Granada CF",
-  "granada": "Granada CF",
-  "ud almeria": "UD Almería",
-  "almeria": "UD Almería",
-  "cadiz cf": "Cádiz CF",
-  "cadiz": "Cádiz CF",
-  "cd tenerife": "CD Tenerife",
-  "tenerife": "CD Tenerife",
-  "real zaragoza": "Real Zaragoza",
-  "zaragoza": "Real Zaragoza",
-  "burgos cf": "Burgos CF",
-  "burgos": "Burgos CF",
-  "albacete bp": "Albacete BP",
-  "albacete": "Albacete BP",
-  "sd huesca": "SD Huesca",
-  "huesca": "SD Huesca",
-  "cd castellon": "CD Castellón",
-  "castellon": "CD Castellón",
-  "malaga cf": "Málaga CF",
-  "malaga": "Málaga CF",
-  "deportivo de la coruna": "Deportivo de La Coruña",
-  "deportivo": "Deportivo",
-  "dep coruna": "Deportivo",
-  "racing de ferrol": "Racing de Ferrol",
-  "racing ferrol": "Racing de Ferrol",
-  "ferrol": "Racing de Ferrol",
-  "fc cartagena": "FC Cartagena",
-  "cartagena": "FC Cartagena",
-  "cd mirandes": "CD Mirandés",
-  "mirandes": "CD Mirandés",
-  "cordoba cf": "Córdoba CF",
-  "cordoba": "Córdoba CF",
-  "cd eldense": "CD Eldense",
-  "eldense": "CD Eldense",
-  // Internacionales / Champions
-  "manchester city": "Manchester City",
-  "man city": "Manchester City",
-  "arsenal": "Arsenal",
-  "liverpool": "Liverpool",
-  "aston villa": "Aston Villa",
-  "chelsea": "Chelsea",
-  "manchester united": "Manchester United",
-  "man united": "Manchester United",
-  "bayern munchen": "Bayern München",
-  "bayern": "Bayern München",
-  "borussia dortmund": "Borussia Dortmund",
-  "dortmund": "Borussia Dortmund",
-  "bayer leverkusen": "Bayer Leverkusen",
-  "leverkusen": "Bayer Leverkusen",
-  "rb leipzig": "RB Leipzig",
-  "leipzig": "RB Leipzig",
-  "paris saint germain": "PSG",
-  "psg": "PSG",
-  "monaco": "Monaco",
-  "marseille": "Marseille",
-  "inter": "Inter de Milán",
-  "inter de milan": "Inter de Milán",
-  "juventus": "Juventus",
-  "milan": "AC Milan",
-  "ac milan": "AC Milan",
-  "atalanta": "Atalanta",
-  "roma": "AS Roma",
-  "as roma": "AS Roma",
-  "napoli": "Napoli",
-  "lazio": "Lazio",
-  "benfica": "Benfica",
-  "porto": "Porto",
-  "sporting cp": "Sporting CP",
-};
-
-const EQUIPOS_LISTA_ORDENADA = Object.keys(CANONICAL_TEAMS).sort((a, b) => b.length - a.length);
+import { procesarBoletoQuinigolPipeline } from "../utils/ocrPipeline";
 
 export default function AdminView({
   bote,
@@ -276,216 +137,7 @@ export default function AdminView({
     reader.readAsDataURL(file);
   };
 
-  // Funciones auxiliares para normalización, distancia y matching inteligente de equipos
-  function normalizeStr(s) {
-    return (s || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function levenshtein(a, b) {
-    const m = a.length, n = b.length;
-    const d = Array.from({ length: m + 1 }, () => new Array(n + 1));
-    for (let i = 0; i <= m; i++) d[i][0] = i;
-    for (let j = 0; j <= n; j++) d[0][j] = j;
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
-      }
-    }
-    return d[m][n];
-  }
-
-  function findBestTeamMatch(line) {
-    if (!line || line.length < 2) return null;
-
-    // Limpiar prefijos numéricos típicos de boletos: "1.", "01", "P1", "Partido 1"
-    const cleaned = line
-      .replace(/^(?:partido|p)?\s*\d+[\.\-\s\:\)]+/i, "")
-      .replace(/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+/, "")
-      .replace(/[\s\.\,\-\:\/]+[012M\.\,\-\s]{1,6}$/i, "")
-      .trim();
-
-    const lowerCleaned = cleaned.toLowerCase();
-    const PALABRAS_PROHIBIDAS = [
-      "pronostica", "partidos", "quinigol", "loterias", "apuestas", "sencilla",
-      "multiple", "aleatoria", "limpiar", "importe", "bote", "jornada", "fecha",
-      "domingo", "sabado", "viernes", "lunes", "martes", "miercoles", "jueves"
-    ];
-    if (PALABRAS_PROHIBIDAS.some((p) => lowerCleaned.includes(p))) {
-      return null;
-    }
-
-    const normCleaned = normalizeStr(cleaned);
-    if (!normCleaned || normCleaned.length < 2) return null;
-
-    // 1. Coincidencia directa o exacta en el diccionario canónico
-    if (CANONICAL_TEAMS[normCleaned]) {
-      return CANONICAL_TEAMS[normCleaned];
-    }
-
-    // 2. Búsqueda por subcadena ordenada por longitud decreciente
-    for (const key of EQUIPOS_LISTA_ORDENADA) {
-      if (normCleaned === key) {
-        return CANONICAL_TEAMS[key];
-      }
-      if (normCleaned.includes(key)) {
-        return CANONICAL_TEAMS[key];
-      }
-      if (key.length >= 4 && key.includes(normCleaned)) {
-        return CANONICAL_TEAMS[key];
-      }
-    }
-
-    // 3. Distancia Levenshtein tolerante a errores OCR comunes
-    let bestMatch = null;
-    let minDistance = 999;
-
-    for (const key of EQUIPOS_LISTA_ORDENADA) {
-      const dist = levenshtein(normCleaned, key);
-      const maxAllowed = key.length > 8 ? 2 : key.length > 4 ? 1 : 0;
-      if (dist <= maxAllowed && dist < minDistance) {
-        minDistance = dist;
-        bestMatch = CANONICAL_TEAMS[key];
-      }
-    }
-
-    if (bestMatch) return bestMatch;
-
-    // 4. Si tiene pinta de nombre propio sin números, capitalizar
-    if (cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
-      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-    }
-
-    return null;
-  }
-
-  // Preprocesamiento de imagen con Canvas optimizado: escala nítida y contraste sin recortes destructivos
-  function preprocessImage(imageSrc) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const w = img.naturalWidth || img.width;
-        const h = img.naturalHeight || img.height;
-
-        const canvas = document.createElement("canvas");
-        // No recortamos el ancho agresivamente para evitar cortar al equipo visitante o nombres largos
-        const targetWidth = Math.min(1800, Math.max(1200, w));
-        const scale = targetWidth / w;
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-
-        const ctx = canvas.getContext("2d");
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imgData.data;
-
-        // Curva de contraste adaptativa para destacar texto impreso sobre el boleto
-        for (let i = 0; i < data.length; i += 4) {
-          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-          // Contraste optimizado para OCR: fondos claros se blanquean, texto oscuro se resalta
-          const val = gray > 168 ? 255 : Math.max(0, Math.min(255, (gray - 25) * 1.55));
-          data[i] = val;
-          data[i + 1] = val;
-          data[i + 2] = val;
-        }
-        ctx.putImageData(imgData, 0, 0);
-
-        resolve({
-          dataUrl: canvas.toDataURL("image/png"),
-        });
-      };
-      img.onerror = reject;
-      img.src = imageSrc;
-    });
-  }
-
-  // Parser heurístico avanzado para extraer los 6 partidos del texto de la foto
-  const parsearTextoQuinigol = (text) => {
-    if (!text || typeof text !== "string") return partidosEditables;
-
-    const lineas = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length >= 2);
-
-    const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / ", " -", "- "];
-    const partidosSeparador = [];
-
-    // Estrategia 1: Líneas que contienen separador de enfrentamiento
-    for (const linea of lineas) {
-      const lower = linea.toLowerCase();
-      if (["pronostica", "partidos", "quinigol", "loterias", "apuestas"].some((p) => lower.includes(p))) {
-        continue;
-      }
-
-      for (const sep of separadores) {
-        if (linea.includes(sep)) {
-          const split = linea.split(sep);
-          if (split.length >= 2) {
-            const rawH = split[0].replace(/^(?:partido|p)?\s*\d+[\.\-\s\:\)]+/i, "").trim();
-            const rawA = split[1].replace(/[\.\-\s\:\)]+\d+$/, "").trim();
-            const h = findBestTeamMatch(rawH) || rawH;
-            const a = findBestTeamMatch(rawA) || rawA;
-            if (h && a && h.length > 1 && a.length > 1) {
-              partidosSeparador.push({ home: h, away: a });
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (partidosSeparador.length >= 4) {
-      return partidosEditables.map((p, idx) => ({
-        ...p,
-        home: partidosSeparador[idx]?.home || p.home || `Local ${idx + 1}`,
-        away: partidosSeparador[idx]?.away || p.away || `Visitante ${idx + 1}`,
-      }));
-    }
-
-    // Estrategia 2: Extracción secuencial de equipos detectados línea por línea
-    const equiposDetectados = [];
-    for (const linea of lineas) {
-      const team = findBestTeamMatch(linea);
-      if (team) {
-        const ultimo = equiposDetectados[equiposDetectados.length - 1];
-        if (!ultimo || normalizeStr(ultimo) !== normalizeStr(team)) {
-          equiposDetectados.push(team);
-        }
-      }
-    }
-
-    if (equiposDetectados.length >= 2) {
-      const nuevos = [...partidosEditables];
-      for (let i = 0; i < 6; i++) {
-        const idxLocal = i * 2;
-        const idxVisitante = i * 2 + 1;
-        if (idxLocal < equiposDetectados.length) {
-          nuevos[i] = {
-            ...nuevos[i],
-            home: equiposDetectados[idxLocal] || nuevos[i].home,
-            away: idxVisitante < equiposDetectados.length ? equiposDetectados[idxVisitante] : nuevos[i].away,
-          };
-        }
-      }
-      return nuevos;
-    }
-
-    return partidosEditables;
-  };
-
-  // Ejecutar OCR en la foto seleccionada
+  // Ejecutar OCR en la foto seleccionada utilizando el pipeline robusto de 3 fases
   const ejecutarOcr = async () => {
     if (!imagenPreview) {
       setMensajePartidos({ tipo: "error", texto: "Primero selecciona o sube una foto de la quiniela." });
@@ -493,31 +145,28 @@ export default function AdminView({
     }
 
     setProcesandoOcr(true);
-    setProgresoOcr(0);
-    setEstadoOcrTexto("Analizando y preprocesando imagen...");
+    setProgresoOcr(10);
+    setEstadoOcrTexto("Iniciando pipeline OCR en 3 fases...");
     setMensajePartidos(null);
 
     try {
-      setEstadoOcrTexto("Analizando y mejorando calidad del boleto...");
-      const prep = await preprocessImage(imagenPreview);
+      const resultado = await procesarBoletoQuinigolPipeline(
+        imagenPreview,
+        partidosEditables,
+        (estadoMsg) => {
+          setEstadoOcrTexto(estadoMsg);
+          setProgresoOcr((prev) => Math.min(95, prev + 25));
+        }
+      );
 
-      const worker = await createWorker("spa");
-
-      setEstadoOcrTexto("Escaneando equipos y partidos oficiales...");
-      const ret = await worker.recognize(prep.dataUrl);
-      const texto = ret.data.text || "";
-
-      const partidosParseados = parsearTextoQuinigol(texto);
-
-      await worker.terminate();
-
-      setTextoExtraidoRaw(texto);
-      setPartidosEditables(partidosParseados);
+      setTextoExtraidoRaw(resultado.textoRaw);
+      setPartidosEditables(resultado.partidos);
       setProgresoOcr(100);
+      setEstadoOcrTexto("¡Escaneado y autocorrección completados!");
 
       setMensajePartidos({
         tipo: "success",
-        texto: "Equipos reconocidos con éxito y aplicados en la tabla inferior. Revisa y confirma antes de guardar.",
+        texto: "Equipos reconocidos y normalizados con éxito. Revisa y confirma antes de guardar la jornada.",
       });
 
       setTimeout(() => {
@@ -528,12 +177,12 @@ export default function AdminView({
       }, 250);
 
       confetti({
-        particleCount: 70,
+        particleCount: 75,
         spread: 70,
         origin: { y: 0.5 },
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error en pipeline OCR:", err);
       setMensajePartidos({
         tipo: "error",
         texto: "Error al procesar la imagen con OCR: " + err.message,
