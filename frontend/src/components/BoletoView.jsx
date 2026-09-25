@@ -595,14 +595,14 @@ export default function BoletoView({
                   return (
                     <div
                       key={key}
-                      className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs space-y-2 hover:border-stone-400 transition-colors"
+                      className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3 hover:border-stone-400 transition-colors"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-100">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono font-bold text-stone-400 uppercase">
                             P0{idx + 1}
                           </span>
-                          <span className="text-sm font-bold text-stone-900">
+                          <span className="text-sm font-extrabold text-stone-900">
                             {homeName} <span className="text-stone-400 font-normal">vs</span> {awayName}
                           </span>
                         </div>
@@ -618,9 +618,35 @@ export default function BoletoView({
                         </div>
                       </div>
 
-                      <p className="text-xs text-stone-600 leading-relaxed font-normal">
-                        {detalle?.razon || `Análisis basado en la trayectoria de ${homeName} y ${awayName}.`}
-                      </p>
+                      {/* Últimos 3 enfrentamientos directos (H2H) */}
+                      {Array.isArray(detalle?.ultimos3Enfrentamientos) && detalle.ultimos3Enfrentamientos.length > 0 && (
+                        <div className="space-y-1.5 bg-stone-50/80 rounded-xl p-3 border border-stone-200/60">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                            <span>⏮️</span>
+                            <span>Últimas 3 veces que se enfrentaron (H2H):</span>
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {detalle.ultimos3Enfrentamientos.map((res, rIdx) => (
+                              <span
+                                key={rIdx}
+                                className="text-[11px] font-semibold font-mono bg-white border border-stone-200/80 px-2.5 py-1 rounded-lg text-stone-800 shadow-2xs"
+                              >
+                                {res}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Análisis de última hora */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                          Análisis de última hora y dinámica:
+                        </span>
+                        <p className="text-xs text-stone-700 leading-relaxed font-normal">
+                          {detalle?.analisisUltimaHora || detalle?.razon || `Análisis basado en la trayectoria de ${homeName} y ${awayName}.`}
+                        </p>
+                      </div>
 
                       {detalle?.tendencia && (
                         <div className="pt-1">

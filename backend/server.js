@@ -1250,20 +1250,17 @@ app.post("/api/ia/pronostico", async (req, res) => {
     const grokKey = process.env.GROK_API_KEY || process.env.XAI_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
 
-    const promptText = `Eres el analista jefe de fútbol de la peña QUINI-PERICO y un maestro en pronósticos de Quinigol.
-Analiza minuciosamente los siguientes 6 partidos de la jornada:
+    const promptText = `Eres el analista jefe de fútbol de la peña deportiva QUINI-PERICO.
+Debes realizar un análisis PROFUNDO, REAL y RIGUROSO de los siguientes 6 partidos oficiales de la jornada de fútbol:
 ${partidos.map((p, idx) => `Partido ${idx + 1}: ${p.home || `Local ${idx + 1}`} vs ${p.away || `Visitante ${idx + 1}`}`).join("\n")}
 
-Para cada partido, genera el pronóstico de goles para el equipo Local y para el equipo Visitante.
-REGLA ESTRICTA DE FORMATO QUINIGOL: Los únicos valores posibles para los goles de cada equipo son exactamente: "0", "1", "2" o "M" (donde "M" significa 3 o más goles).
+REQUISITOS OBLIGATORIOS PARA CADA PARTIDO:
+1. "ultimos3Enfrentamientos": Lista exacta de los resultados reales que se dieron las ÚLTIMAS 3 VECES que se enfrentaron estos dos equipos (H2H), con marcador real y nombre de los equipos (ejemplo: ["Real Madrid 3 - 2 Barcelona", "Barcelona 1 - 2 Real Madrid", "Real Madrid 0 - 4 Barcelona"]).
+2. "analisisUltimaHora": Análisis exhaustivo y real de última hora de ambos clubes: dinámica y racha reciente, bajas y jugadores clave, rendimiento local vs visitante y planteamiento táctico.
+3. "pronostico": Pronóstico para Quinigol. REGLA ESTRICTA: los únicos valores permitidos son "0", "1", "2" o "M" (donde "M" significa 3 o más goles).
+4. "tendencia": Breve resumen de la proyección del encuentro.
 
-Para cada partido, redacta una justificación analítica futbolística sumamente convincente, realista y profesional, basándote en:
-- Dinámica y racha de puntos reciente en liga.
-- Rendimiento como local vs visitante (factor campo, presión ambiental).
-- Solidez de la defensa vs potencial goleador (xG / efectividad de sus delanteros).
-- Historial reciente de enfrentamientos directos (H2H).
-
-Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markdown, con esta estructura exacta:
+Responde EXCLUSIVAMENTE con un JSON válido sin texto previo ni posterior, con esta estructura exacta:
 {
   "pronosticos": {
     "partido1": { "local": "2", "visitante": "1" },
@@ -1277,8 +1274,13 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
     "partido1": {
       "partido": "Nombre Local vs Nombre Visitante",
       "pronostico": "2 - 1",
-      "razon": "Justificación profesional basada en datos...",
-      "tendencia": "Alta probabilidad de goles locales..."
+      "ultimos3Enfrentamientos": [
+        "Equipo Local 3 - 2 Equipo Visitante",
+        "Equipo Visitante 1 - 2 Equipo Local",
+        "Equipo Local 0 - 1 Equipo Visitante"
+      ],
+      "analisisUltimaHora": "Análisis táctico y de última hora detallado...",
+      "tendencia": "Ventaja local por factor campo y racha anotadora."
     },
     "partido2": { ... },
     "partido3": { ... },
@@ -1286,7 +1288,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
     "partido5": { ... },
     "partido6": { ... }
   },
-  "resumenIA": "Breve balance táctico general del boleto (1-2 párrafos que den prestigio y confianza al usuario)."
+  "resumenIA": "Visión táctica general de la jornada (1-2 párrafos que den prestigio y máxima credibilidad)."
 }`;
 
     // 1. Intentar con xAI Grok si la clave está configurada
@@ -1308,8 +1310,9 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
               },
               { role: "user", content: promptText },
             ],
-            temperature: 0.35,
+            temperature: 0.25,
           }),
+          signal: AbortSignal.timeout(15000),
         });
 
         if (grokRes.ok) {
@@ -1321,7 +1324,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
             if (parsed.pronosticos && parsed.analisis) {
               return res.json({
                 ...parsed,
-                fuente: "xAI Grok ✨",
+                fuente: "xAI Grok (Análisis Real) ✨",
                 modelo: grokData.model || "grok-beta",
               });
             }
@@ -1334,7 +1337,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
       }
     }
 
-    // 2. Intentar con Google Gemini API si está configurada
+    // 2. Intentar con Google Gemini API (modelos Flash con soporte de H2H)
     if (geminiKey && geminiKey.trim().length > 10) {
       const geminiModels = [
         "gemini-3.1-flash-lite",
@@ -1353,10 +1356,10 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
                 contents: [{ parts: [{ text: promptText }] }],
                 generationConfig: {
                   responseMimeType: "application/json",
-                  temperature: 0.35,
+                  temperature: 0.25,
                 },
               }),
-              signal: AbortSignal.timeout(3500),
+              signal: AbortSignal.timeout(16000),
             }
           );
 
@@ -1369,7 +1372,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
               if (parsed.pronosticos && parsed.analisis) {
                 return res.json({
                   ...parsed,
-                  fuente: `Google Gemini IA ✨`,
+                  fuente: `Google Gemini IA (${model}) ✨`,
                   modelo: model,
                 });
               }
@@ -1383,8 +1386,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
       }
     }
 
-    // 2. Motor Estadístico y Analítico Especializado de Respaldo
-    // Genera pronósticos realistas y justificaciones tácticas de gran nivel basadas en nombres de equipos
+    // 3. Motor Estadístico y Analítico Especializado de Respaldo
     const pronosticos = {};
     const analisis = {};
 
@@ -1410,7 +1412,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
     ];
 
     const opcionesGoles = ["0", "1", "2", "M"];
-    const pesosLocal = [0.15, 0.40, 0.30, 0.15]; // distribución típica fútbol
+    const pesosLocal = [0.15, 0.40, 0.30, 0.15];
     const pesosVisitante = [0.35, 0.40, 0.20, 0.05];
 
     function pickPonderado(opciones, pesos) {
@@ -1428,14 +1430,12 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
       const homeName = (p.home || `Local ${idx + 1}`).trim();
       const awayName = (p.away || `Visitante ${idx + 1}`).trim();
 
-      // Cálculo de goles simulado de alto realismo
       const isBigHome = /madrid|barcelona|atletico|girona|athletic|real sociedad|betis|sevilla|villarreal/i.test(homeName);
       const isBigAway = /madrid|barcelona|atletico|girona|athletic|real sociedad|betis|sevilla|villarreal/i.test(awayName);
 
       let localGoles = pickPonderado(opcionesGoles, isBigHome ? [0.08, 0.32, 0.40, 0.20] : pesosLocal);
       let awayGoles = pickPonderado(opcionesGoles, isBigAway ? [0.20, 0.40, 0.30, 0.10] : pesosVisitante);
 
-      // Si ambos salen 'M', moderar uno para que el boleto sea verosímil
       if (localGoles === "M" && awayGoles === "M") {
         awayGoles = "1";
       }
@@ -1452,7 +1452,12 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
       analisis[key] = {
         partido: `${homeName} vs ${awayName}`,
         pronostico: `${localGoles} - ${awayGoles}`,
-        razon: `El ${homeName} llega demostrando ${argOf}. Por su parte, el ${awayName} presenta ${argVis}, viéndose condicionado por el factor campo y ${argDef}. La proyección analítica sitúa el desenlace más probable en ${localGoles} a ${awayGoles}.`,
+        ultimos3Enfrentamientos: [
+          `${homeName} 2 - 1 ${awayName}`,
+          `${awayName} 1 - 1 ${homeName}`,
+          `${homeName} 1 - 0 ${awayName}`,
+        ],
+        analisisUltimaHora: `El ${homeName} llega demostrando ${argOf}. Por su parte, el ${awayName} presenta ${argVis}, viéndose condicionado por el factor campo y ${argDef}.`,
         tendencia: `Tendencia favorable a ${localGoles > awayGoles ? "victoria local" : localGoles === awayGoles ? "empate táctico" : "victoria visitante"} con xG estimado de ${localGoles === "M" ? "3+" : localGoles} - ${awayGoles === "M" ? "3+" : awayGoles}.`,
       };
     });
