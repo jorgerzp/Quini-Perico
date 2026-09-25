@@ -1336,38 +1336,50 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto adicional ni bloques markd
 
     // 2. Intentar con Google Gemini API si está configurada
     if (geminiKey && geminiKey.trim().length > 10) {
-      try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey.trim()}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: promptText }] }],
-              generationConfig: { temperature: 0.4 },
-            }),
-          }
-        );
+      const geminiModels = [
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+      ];
 
-        if (geminiRes.ok) {
-          const geminiData = await geminiRes.json();
-          const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            const cleanJsonText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
-            const parsed = JSON.parse(cleanJsonText);
-            if (parsed.pronosticos && parsed.analisis) {
-              return res.json({
-                ...parsed,
-                fuente: "Google Gemini IA 1.5 Flash ✨",
-                modelo: "gemini-1.5-flash",
-              });
+      for (const model of geminiModels) {
+        try {
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey.trim()}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }] }],
+                generationConfig: {
+                  responseMimeType: "application/json",
+                  temperature: 0.35,
+                },
+              }),
+              signal: AbortSignal.timeout(3500),
             }
+          );
+
+          if (geminiRes.ok) {
+            const geminiData = await geminiRes.json();
+            const rawText = geminiData.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text;
+            if (rawText) {
+              const cleanJsonText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+              const parsed = JSON.parse(cleanJsonText);
+              if (parsed.pronosticos && parsed.analisis) {
+                return res.json({
+                  ...parsed,
+                  fuente: `Google Gemini IA ✨`,
+                  modelo: model,
+                });
+              }
+            }
+          } else {
+            console.warn(`Gemini (${model}) status:`, geminiRes.status);
           }
-        } else {
-          console.warn("Llamada a Gemini API devolvió status no ok:", geminiRes.status);
+        } catch (geminiErr) {
+          console.warn(`Fallo o timeout en Gemini (${model}):`, geminiErr.message);
         }
-      } catch (geminiErr) {
-        console.warn("Fallo o timeout en Gemini API, recurriendo a motor de respaldo:", geminiErr.message);
       }
     }
 
