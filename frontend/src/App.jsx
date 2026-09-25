@@ -6,6 +6,7 @@ import ResultadosView from "./components/ResultadosView";
 import ClasificacionView from "./components/ClasificacionView";
 import AdminView from "./components/AdminView";
 import LoginView from "./components/LoginView";
+import PagosView from "./components/PagosView";
 
 const STORAGE_AUTH_KEY = "quini_perico_auth_user";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -86,20 +87,22 @@ export default function App() {
         setUsuarioActivo((actual) => {
           if (actual) {
             const refrescado = data.find((u) => u.id === actual.id || u.nombre === actual.nombre);
-            if (
-              refrescado &&
-              refrescado.id === actual.id &&
-              refrescado.puntos === actual.puntos &&
-              refrescado.aciertos === actual.aciertos &&
-              refrescado.haJugado === actual.haJugado
-            ) {
-              return actual;
+            if (refrescado) {
+              try {
+                localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
+              } catch {}
+              return refrescado;
             }
-            return refrescado || actual;
+            return actual;
           }
           if (usuarioLogueado) {
             const match = data.find((u) => u.id === usuarioLogueado.id || u.nombre === usuarioLogueado.nombre);
-            if (match) return match;
+            if (match) {
+              try {
+                localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
+              } catch {}
+              return match;
+            }
           }
           const jorge = data.find((u) => u.nombre === "Jorge");
           return jorge || data[0] || null;
@@ -195,6 +198,8 @@ export default function App() {
       console.error(e);
     }
     setSeccionActiva("boleto");
+    cargarUsuarios();
+    cargarPartidos();
   };
 
   const handleLogout = () => {
@@ -324,6 +329,10 @@ export default function App() {
             numeroJornada={numeroJornada}
             onIrBoleto={() => setSeccionActiva("boleto")}
           />
+        )}
+
+        {seccionActiva === "pagos" && (
+          <PagosView usuarioActivo={usuarioActivo} />
         )}
 
         {seccionActiva === "admin" && (

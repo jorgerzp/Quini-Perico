@@ -25,6 +25,9 @@ export default function BoletoView({
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [apuestaRecienGuardada, setApuestaRecienGuardada] = useState(false);
+  const [cargandoIA, setCargandoIA] = useState(false);
+  const [infoIA, setInfoIA] = useState(null);
+  const [mostrarModalIA, setMostrarModalIA] = useState(false);
 
   const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
@@ -35,14 +38,17 @@ export default function BoletoView({
     setApuestaRecienGuardada(false);
   }, [usuarioActivo?.id, numeroJornada]);
 
-  // Si usuarioActivo tiene jugadaActual para esta misma jornada activa, o acaba de guardarla
-  const coincideJornada =
-    !usuarioActivo?.jornadaActualNumero ||
-    Number(usuarioActivo.jornadaActualNumero) === Number(numeroJornada);
+  // Si usuarioActivo o su registro en la lista tiene jugada en esta misma jornada activa, o acaba de guardarla
+  const userEnLista = usuarios.find(
+    (u) => u.id === usuarioActivo?.id || u.nombre === usuarioActivo?.nombre
+  );
+  const haJugadoReal = Boolean(usuarioActivo?.haJugado || userEnLista?.haJugado);
+  const jornadaNumReal = usuarioActivo?.jornadaActualNumero || userEnLista?.jornadaActualNumero;
+  const coincideJornada = !jornadaNumReal || Number(jornadaNumReal) === Number(numeroJornada);
 
   const yaHaJugado = Boolean(
     apuestaRecienGuardada ||
-    (usuarioActivo?.haJugado && coincideJornada)
+    (haJugadoReal && coincideJornada)
   );
 
   useEffect(() => {
@@ -226,6 +232,44 @@ export default function BoletoView({
     setFeedback(null);
   };
 
+  const handleRellenarConIA = async () => {
+    if (cargandoIA || yaHaJugado) return;
+    setCargandoIA(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/ia/pronostico`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partidos }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo generar el pronóstico con IA.");
+
+      if (data.pronosticos) {
+        setPredictions(data.pronosticos);
+      }
+      setInfoIA(data);
+      setMostrarModalIA(true);
+
+      confetti({
+        particleCount: 75,
+        spread: 70,
+        origin: { y: 0.5 },
+      });
+    } catch (err) {
+      console.warn("Fallo IA, recurriendo a generador local:", err.message);
+      handleAutoFill();
+      setFeedback({
+        type: "error",
+        text: "Hubo un problema al contactar con la IA. Se ha generado un pronóstico estadístico alternativo.",
+      });
+    } finally {
+      setCargandoIA(false);
+    }
+  };
+
   const handleConfirmTicket = async () => {
     if (submitting || yaHaJugado) return;
 
@@ -312,15 +356,29 @@ export default function BoletoView({
             Pronostica los goles (0, 1, 2, M) de los 6 partidos
           </span>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              id="btn-auto-fill"
-              onClick={handleAutoFill}
-              className="bg-white/30 border border-white/50 hover-negro-brillante rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider text-stone-700 transition-all duration-300 cursor-pointer"
+              id="btn-rellenar-ia"
+              disabled={cargandoIA}
+              onClick={handleRellenarConIA}
+              title="Analiza datos estadísticos, dinámicas y xG de los 6 partidos con IA"
+              className="bg-white/40 border border-white/60 hover:bg-white/70 text-stone-900 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-xs flex items-center gap-2 disabled:opacity-50 hover-negro-brillante"
             >
-              Rellenar al Azar
+              <span>{cargandoIA ? "Analizando con IA..." : "Rellenar con IA ✨"}</span>
             </button>
+
+            {infoIA && (
+              <button
+                type="button"
+                id="btn-ver-analisis-ia"
+                onClick={() => setMostrarModalIA(true)}
+                className="text-xs font-semibold text-stone-600 hover:text-stone-900 underline transition-colors cursor-pointer px-2 py-3 flex items-center gap-1"
+              >
+                <span>Ver análisis IA</span>
+                <span className="text-[11px]">💡</span>
+              </button>
+            )}
 
             {totalSubmitted > 0 && (
               <button
@@ -479,6 +537,126 @@ export default function BoletoView({
             : "Completa todos los pronósticos para sellar"}
         </p>
       </section>
+
+      {/* Modal / Cuadro Explicativo de la IA */}
+      {mostrarModalIA && infoIA && (
+        <div
+          onClick={() => setMostrarModalIA(false)}
+          className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white/95 backdrop-blur-2xl border border-white/80 rounded-3xl p-6 sm:p-10 max-w-3xl w-full max-h-[88vh] overflow-y-auto shadow-2xl space-y-6 relative"
+          >
+            {/* Cabecera del Modal */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-stone-200">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200 inline-block mb-2">
+                  ✨ {infoIA.fuente || "Inteligencia Artificial Quini-Perico"}
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900">
+                  Pronóstico Táctico con IA
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-500 font-medium mt-1">
+                  La Inteligencia Artificial ha examinado la racha, goles esperados (xG), factor campo y registros directos para proponer este boleto.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMostrarModalIA(false)}
+                className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold text-sm flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Resumen Táctico Global */}
+            {infoIA.resumenIA && (
+              <div className="p-4 rounded-2xl bg-stone-100/80 border border-stone-200 text-xs sm:text-sm text-stone-700 font-medium leading-relaxed italic">
+                "{infoIA.resumenIA}"
+              </div>
+            )}
+
+            {/* Desglose de los 6 Partidos */}
+            <div className="space-y-3.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                Justificación de los 6 Enfrentamientos
+              </h4>
+
+              <div className="space-y-3">
+                {partidos.map((match, idx) => {
+                  const key = `partido${idx + 1}`;
+                  const pred = predictions[key] || { local: "-", visitante: "-" };
+                  const detalle = infoIA.analisis?.[key];
+                  const homeName = match.home || `Local ${idx + 1}`;
+                  const awayName = match.away || `Visitante ${idx + 1}`;
+
+                  return (
+                    <div
+                      key={key}
+                      className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs space-y-2 hover:border-stone-400 transition-colors"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-stone-400 uppercase">
+                            P0{idx + 1}
+                          </span>
+                          <span className="text-sm font-bold text-stone-900">
+                            {homeName} <span className="text-stone-400 font-normal">vs</span> {awayName}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 font-mono font-extrabold text-xs">
+                          <span className="px-2.5 py-1 rounded-lg bg-stone-900 text-white shadow-xs">
+                            {pred.local ?? "-"}
+                          </span>
+                          <span className="text-stone-400">:</span>
+                          <span className="px-2.5 py-1 rounded-lg bg-stone-900 text-white shadow-xs">
+                            {pred.visitante ?? "-"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-stone-600 leading-relaxed font-normal">
+                        {detalle?.razon || `Análisis basado en la trayectoria de ${homeName} y ${awayName}.`}
+                      </p>
+
+                      {detalle?.tendencia && (
+                        <div className="pt-1">
+                          <span className="inline-block text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            🎯 {detalle.tendencia}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pie del Modal con Acciones */}
+            <div className="pt-4 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                disabled={cargandoIA}
+                onClick={handleRellenarConIA}
+                className="px-5 py-3 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {cargandoIA ? "Analizando..." : "🔄 Regenerar con IA"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMostrarModalIA(false)}
+                className="px-8 py-3 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer"
+              >
+                ✓ Aplicar y Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,29 +3,144 @@ import confetti from "canvas-confetti";
 import { createWorker } from "tesseract.js";
 import { API_URL } from "../config";
 
-// Equipos comunes del fútbol español y competiciones oficiales para enriquecer y emparejar texto OCR
-const EQUIPOS_CONOCIDOS = [
-  // LaLiga EA Sports
-  "Real Madrid", "FC Barcelona", "Barcelona", "Barça", "Atlético de Madrid", "At. Madrid", "Atlético",
-  "Athletic Club", "Athletic", "Real Betis", "Betis", "Sevilla FC", "Sevilla", "Valencia CF", "Valencia",
-  "Villarreal CF", "Villarreal", "Real Sociedad", "R. Sociedad", "Girona FC", "Girona", "RCD Espanyol", "Espanyol",
-  "RC Celta de Vigo", "Celta de Vigo", "Celta", "CA Osasuna", "Osasuna", "Rayo Vallecano", "Rayo",
-  "RCD Mallorca", "Mallorca", "Getafe CF", "Getafe", "UD Las Palmas", "Las Palmas", "Deportivo Alavés", "Alavés",
-  "CD Leganés", "Leganés", "Real Valladolid", "Valladolid",
+// Equipos y variantes comunes del fútbol español y europeo para enriquecer y emparejar texto OCR
+const CANONICAL_TEAMS = {
+  "real madrid": "Real Madrid",
+  "r madrid": "Real Madrid",
+  "madrid": "Real Madrid",
+  "fc barcelona": "FC Barcelona",
+  "barcelona": "FC Barcelona",
+  "barca": "FC Barcelona",
+  "barça": "FC Barcelona",
+  "atletico de madrid": "Atlético de Madrid",
+  "atletico madrid": "Atlético de Madrid",
+  "atletico": "Atlético de Madrid",
+  "at madrid": "Atlético de Madrid",
+  "athletic club": "Athletic Club",
+  "athletic": "Athletic Club",
+  "bilbao": "Athletic Club",
+  "real betis": "Real Betis",
+  "r betis": "Real Betis",
+  "betis": "Real Betis",
+  "sevilla fc": "Sevilla FC",
+  "sevilla": "Sevilla FC",
+  "valencia cf": "Valencia CF",
+  "valencia": "Valencia CF",
+  "villarreal cf": "Villarreal CF",
+  "villarreal": "Villarreal CF",
+  "real sociedad": "Real Sociedad",
+  "r sociedad": "Real Sociedad",
+  "la real": "Real Sociedad",
+  "girona fc": "Girona FC",
+  "girona": "Girona FC",
+  "rcd espanyol": "RCD Espanyol",
+  "espanyol": "RCD Espanyol",
+  "rc celta de vigo": "RC Celta",
+  "celta de vigo": "RC Celta",
+  "celta": "RC Celta",
+  "ca osasuna": "CA Osasuna",
+  "osasuna": "CA Osasuna",
+  "rayo vallecano": "Rayo Vallecano",
+  "rayo": "Rayo Vallecano",
+  "rcd mallorca": "RCD Mallorca",
+  "mallorca": "RCD Mallorca",
+  "getafe cf": "Getafe CF",
+  "getafe": "Getafe CF",
+  "ud las palmas": "UD Las Palmas",
+  "las palmas": "UD Las Palmas",
+  "deportivo alaves": "Deportivo Alavés",
+  "alaves": "Deportivo Alavés",
+  "cd leganes": "CD Leganés",
+  "leganes": "CD Leganés",
+  "real valladolid": "Real Valladolid",
+  "r valladolid": "Real Valladolid",
+  "valladolid": "Real Valladolid",
   // LaLiga Hypermotion
-  "SD Eibar", "Eibar", "Levante UD", "Levante", "Real Sporting", "Sporting de Gijón", "Sporting",
-  "Racing de Santander", "Racing", "Real Oviedo", "Oviedo", "Elche CF", "Elche", "Granada CF", "Granada",
-  "UD Almería", "Almería", "Cádiz CF", "Cádiz", "CD Tenerife", "Tenerife", "Real Zaragoza", "Zaragoza",
-  "Burgos CF", "Burgos", "Albacete BP", "Albacete", "SD Huesca", "Huesca", "CD Castellón", "Castellón",
-  "Málaga CF", "Málaga", "Deportivo de La Coruña", "Deportivo", "Dep. Coruña", "Racing de Ferrol", "Ferrol",
-  "FC Cartagena", "Cartagena", "CD Mirandés", "Mirandés", "Córdoba CF", "Córdoba", "CD Eldense", "Eldense",
-  // Internacionales / Champions habituales en Quinigol
-  "Manchester City", "Man. City", "Arsenal", "Liverpool", "Aston Villa", "Chelsea", "Manchester United",
-  "Bayern München", "Bayern", "Borussia Dortmund", "Dortmund", "Bayer Leverkusen", "Leverkusen", "RB Leipzig",
-  "Paris Saint-Germain", "PSG", "Monaco", "Marseille", "Lille",
-  "Inter", "Inter de Milán", "Juventus", "Milan", "AC Milan", "Atalanta", "Roma", "Napoli", "Lazio",
-  "Benfica", "Sporting CP", "Porto", "PSV", "Feyenoord", "Ajax"
-];
+  "sd eibar": "SD Eibar",
+  "eibar": "SD Eibar",
+  "levante ud": "Levante UD",
+  "levante": "Levante UD",
+  "real sporting": "Sporting de Gijón",
+  "sporting de gijon": "Sporting de Gijón",
+  "sporting": "Sporting de Gijón",
+  "racing de santander": "Racing de Santander",
+  "racing santander": "Racing de Santander",
+  "racing": "Racing de Santander",
+  "real oviedo": "Real Oviedo",
+  "oviedo": "Real Oviedo",
+  "elche cf": "Elche CF",
+  "elche": "Elche CF",
+  "granada cf": "Granada CF",
+  "granada": "Granada CF",
+  "ud almeria": "UD Almería",
+  "almeria": "UD Almería",
+  "cadiz cf": "Cádiz CF",
+  "cadiz": "Cádiz CF",
+  "cd tenerife": "CD Tenerife",
+  "tenerife": "CD Tenerife",
+  "real zaragoza": "Real Zaragoza",
+  "zaragoza": "Real Zaragoza",
+  "burgos cf": "Burgos CF",
+  "burgos": "Burgos CF",
+  "albacete bp": "Albacete BP",
+  "albacete": "Albacete BP",
+  "sd huesca": "SD Huesca",
+  "huesca": "SD Huesca",
+  "cd castellon": "CD Castellón",
+  "castellon": "CD Castellón",
+  "malaga cf": "Málaga CF",
+  "malaga": "Málaga CF",
+  "deportivo de la coruna": "Deportivo de La Coruña",
+  "deportivo": "Deportivo",
+  "dep coruna": "Deportivo",
+  "racing de ferrol": "Racing de Ferrol",
+  "racing ferrol": "Racing de Ferrol",
+  "ferrol": "Racing de Ferrol",
+  "fc cartagena": "FC Cartagena",
+  "cartagena": "FC Cartagena",
+  "cd mirandes": "CD Mirandés",
+  "mirandes": "CD Mirandés",
+  "cordoba cf": "Córdoba CF",
+  "cordoba": "Córdoba CF",
+  "cd eldense": "CD Eldense",
+  "eldense": "CD Eldense",
+  // Internacionales / Champions
+  "manchester city": "Manchester City",
+  "man city": "Manchester City",
+  "arsenal": "Arsenal",
+  "liverpool": "Liverpool",
+  "aston villa": "Aston Villa",
+  "chelsea": "Chelsea",
+  "manchester united": "Manchester United",
+  "man united": "Manchester United",
+  "bayern munchen": "Bayern München",
+  "bayern": "Bayern München",
+  "borussia dortmund": "Borussia Dortmund",
+  "dortmund": "Borussia Dortmund",
+  "bayer leverkusen": "Bayer Leverkusen",
+  "leverkusen": "Bayer Leverkusen",
+  "rb leipzig": "RB Leipzig",
+  "leipzig": "RB Leipzig",
+  "paris saint germain": "PSG",
+  "psg": "PSG",
+  "monaco": "Monaco",
+  "marseille": "Marseille",
+  "inter": "Inter de Milán",
+  "inter de milan": "Inter de Milán",
+  "juventus": "Juventus",
+  "milan": "AC Milan",
+  "ac milan": "AC Milan",
+  "atalanta": "Atalanta",
+  "roma": "AS Roma",
+  "as roma": "AS Roma",
+  "napoli": "Napoli",
+  "lazio": "Lazio",
+  "benfica": "Benfica",
+  "porto": "Porto",
+  "sporting cp": "Sporting CP",
+};
+
+const EQUIPOS_LISTA_ORDENADA = Object.keys(CANONICAL_TEAMS).sort((a, b) => b.length - a.length);
 
 export default function AdminView({
   bote,
@@ -168,6 +283,7 @@ export default function AdminView({
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
   }
 
@@ -188,10 +304,11 @@ export default function AdminView({
   function findBestTeamMatch(line) {
     if (!line || line.length < 2) return null;
 
+    // Limpiar prefijos numéricos típicos de boletos: "1.", "01", "P1", "Partido 1"
     const cleaned = line
+      .replace(/^(?:partido|p)?\s*\d+[\.\-\s\:\)]+/i, "")
       .replace(/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+/, "")
-      .replace(/^[A-Za-z0-9\W]{1,3}\s+/, "")
-      .replace(/\s+[012M\.\,\-\s]{1,6}$/i, "")
+      .replace(/[\s\.\,\-\:\/]+[012M\.\,\-\s]{1,6}$/i, "")
       .trim();
 
     const lowerCleaned = cleaned.toLowerCase();
@@ -205,83 +322,79 @@ export default function AdminView({
     }
 
     const normCleaned = normalizeStr(cleaned);
-    const normOriginal = normalizeStr(line);
+    if (!normCleaned || normCleaned.length < 2) return null;
 
-    let best = null;
-    let bestScore = 0;
+    // 1. Coincidencia directa o exacta en el diccionario canónico
+    if (CANONICAL_TEAMS[normCleaned]) {
+      return CANONICAL_TEAMS[normCleaned];
+    }
 
-    for (const eq of EQUIPOS_CONOCIDOS) {
-      const normEq = normalizeStr(eq);
-
-      if (normCleaned === normEq || normOriginal === normEq) {
-        return eq;
+    // 2. Búsqueda por subcadena ordenada por longitud decreciente
+    for (const key of EQUIPOS_LISTA_ORDENADA) {
+      if (normCleaned === key) {
+        return CANONICAL_TEAMS[key];
       }
-
-      if (normCleaned.includes(normEq) || normOriginal.includes(normEq)) {
-        if (normEq.length > bestScore) {
-          best = eq;
-          bestScore = normEq.length;
-        }
-      } else if (normCleaned.length >= 4 && normEq.includes(normCleaned)) {
-        if (normCleaned.length > bestScore) {
-          best = eq;
-          bestScore = normCleaned.length;
-        }
-      } else {
-        const dist = levenshtein(normCleaned, normEq);
-        const maxPermitido = normEq.length > 7 ? 2 : 1;
-        if (dist <= maxPermitido && normEq.length > bestScore) {
-          best = eq;
-          bestScore = normEq.length;
-        }
+      if (normCleaned.includes(key)) {
+        return CANONICAL_TEAMS[key];
+      }
+      if (key.length >= 4 && key.includes(normCleaned)) {
+        return CANONICAL_TEAMS[key];
       }
     }
 
-    if (!best && cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
+    // 3. Distancia Levenshtein tolerante a errores OCR comunes
+    let bestMatch = null;
+    let minDistance = 999;
+
+    for (const key of EQUIPOS_LISTA_ORDENADA) {
+      const dist = levenshtein(normCleaned, key);
+      const maxAllowed = key.length > 8 ? 2 : key.length > 4 ? 1 : 0;
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        bestMatch = CANONICAL_TEAMS[key];
+      }
+    }
+
+    if (bestMatch) return bestMatch;
+
+    // 4. Si tiene pinta de nombre propio sin números, capitalizar
+    if (cleaned.length >= 3 && !/^\d+$/.test(cleaned)) {
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
     }
 
-    return best;
+    return null;
   }
 
-  // Preprocesamiento de imagen con Canvas: recorte de columna de equipos y mejora de contraste
-  function preprocessImage(imageSrc, mode = "auto") {
+  // Preprocesamiento de imagen con Canvas optimizado: escala nítida y contraste sin recortes destructivos
+  function preprocessImage(imageSrc) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         const w = img.naturalWidth || img.width;
         const h = img.naturalHeight || img.height;
-        const isPortrait = h / w > 1.25;
 
         const canvas = document.createElement("canvas");
-        let cropX = 0;
-        let cropY = 0;
-        let cropW = w;
-        let cropH = h;
-
-        if (mode === "teams_column" || (mode === "auto" && isPortrait)) {
-          cropX = Math.round(w * 0.07);
-          cropY = Math.round(h * 0.14);
-          cropW = Math.round(w * 0.50);
-          cropH = Math.round(h * 0.74);
-        }
-
-        const scale = Math.max(2.5, Math.min(4.5, 1200 / cropW));
-        canvas.width = Math.round(cropW * scale);
-        canvas.height = Math.round(cropH * scale);
+        // No recortamos el ancho agresivamente para evitar cortar al equipo visitante o nombres largos
+        const targetWidth = Math.min(1800, Math.max(1200, w));
+        const scale = targetWidth / w;
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
 
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
+
+        // Curva de contraste adaptativa para destacar texto impreso sobre el boleto
         for (let i = 0; i < data.length; i += 4) {
           const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-          const val = gray > 180 ? 255 : Math.max(0, (gray - 35) * 1.6);
+          // Contraste optimizado para OCR: fondos claros se blanquean, texto oscuro se resalta
+          const val = gray > 168 ? 255 : Math.max(0, Math.min(255, (gray - 25) * 1.55));
           data[i] = val;
           data[i + 1] = val;
           data[i + 2] = val;
@@ -290,7 +403,6 @@ export default function AdminView({
 
         resolve({
           dataUrl: canvas.toDataURL("image/png"),
-          isPortrait,
         });
       };
       img.onerror = reject;
@@ -307,9 +419,10 @@ export default function AdminView({
       .map((l) => l.trim())
       .filter((l) => l.length >= 2);
 
-    const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / "];
+    const separadores = [" - ", " – ", " — ", " vs ", " VS ", " vs. ", " / ", " -", "- "];
     const partidosSeparador = [];
 
+    // Estrategia 1: Líneas que contienen separador de enfrentamiento
     for (const linea of lineas) {
       const lower = linea.toLowerCase();
       if (["pronostica", "partidos", "quinigol", "loterias", "apuestas"].some((p) => lower.includes(p))) {
@@ -320,7 +433,7 @@ export default function AdminView({
         if (linea.includes(sep)) {
           const split = linea.split(sep);
           if (split.length >= 2) {
-            const rawH = split[0].replace(/^[pP]?\d+[\.\-\s\:\)]+/, "").trim();
+            const rawH = split[0].replace(/^(?:partido|p)?\s*\d+[\.\-\s\:\)]+/i, "").trim();
             const rawA = split[1].replace(/[\.\-\s\:\)]+\d+$/, "").trim();
             const h = findBestTeamMatch(rawH) || rawH;
             const a = findBestTeamMatch(rawA) || rawA;
@@ -341,6 +454,7 @@ export default function AdminView({
       }));
     }
 
+    // Estrategia 2: Extracción secuencial de equipos detectados línea por línea
     const equiposDetectados = [];
     for (const linea of lineas) {
       const team = findBestTeamMatch(linea);
@@ -384,28 +498,16 @@ export default function AdminView({
     setMensajePartidos(null);
 
     try {
-      setEstadoOcrTexto("Aislando y mejorando columna de equipos...");
-      const prep = await preprocessImage(imagenPreview, "auto");
+      setEstadoOcrTexto("Analizando y mejorando calidad del boleto...");
+      const prep = await preprocessImage(imagenPreview);
 
       const worker = await createWorker("spa");
 
-      setEstadoOcrTexto("Escaneando nombres de equipos en la columna...");
+      setEstadoOcrTexto("Escaneando equipos y partidos oficiales...");
       const ret = await worker.recognize(prep.dataUrl);
-      let texto = ret.data.text || "";
+      const texto = ret.data.text || "";
 
-      let partidosParseados = parsearTextoQuinigol(texto);
-      let numRellenados = partidosParseados.filter((p) => p.home && p.away).length;
-
-      if (numRellenados < 4 && prep.isPortrait) {
-        setEstadoOcrTexto("Probando reconocimiento amplio de la imagen...");
-        const fullPrep = await preprocessImage(imagenPreview, "full_enhanced");
-        const retFull = await worker.recognize(fullPrep.dataUrl);
-        const partidosFull = parsearTextoQuinigol(retFull.data.text || "");
-        if (partidosFull.filter((p) => p.home && p.away).length > numRellenados) {
-          partidosParseados = partidosFull;
-          texto = retFull.data.text || "";
-        }
-      }
+      const partidosParseados = parsearTextoQuinigol(texto);
 
       await worker.terminate();
 
@@ -531,7 +633,7 @@ export default function AdminView({
   const reiniciarPartidos = async () => {
     if (
       !window.confirm(
-        "¿Estás seguro de que deseas eliminar los partidos de esta jornada? La sección de apuesta volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
+        "¿Estás seguro de que deseas vaciar los partidos de esta jornada? La sección de apuesta volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
       )
     ) {
       return;
@@ -558,9 +660,55 @@ export default function AdminView({
       setTextoExtraidoRaw("");
       setMensajePartidos({
         tipo: "success",
-        texto: "Partidos eliminados correctamente.",
+        texto: "Partidos vaciados correctamente.",
       });
       if (onPartidosActualizados) onPartidosActualizados(null);
+    } catch (err) {
+      setMensajePartidos({ tipo: "error", texto: err.message });
+    } finally {
+      setGuardandoPartidos(false);
+    }
+  };
+
+  // Limpiar por completo la jornada activa para dejarla en blanco (Superadmin)
+  const limpiarJornadaCompleta = async () => {
+    if (
+      !window.confirm(
+        "⚠️ ¿Estás completamente seguro de que deseas LIMPIAR la jornada activa para dejarla en blanco?\n\nEsta acción:\n- Borrará todas las apuestas de los miembros en esta jornada.\n- Borrará los partidos y la foto del boleto.\n- Permitirá a todos los miembros volver a rellenar cuando abras una nueva jornada."
+      )
+    ) {
+      return;
+    }
+
+    setGuardandoPartidos(true);
+    setMensajePartidos(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/jornada/limpiar`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo limpiar la jornada.");
+
+      const partidosVacios = [
+        { id: 1, key: "partido1", numStr: "01", home: "", away: "" },
+        { id: 2, key: "partido2", numStr: "02", home: "", away: "" },
+        { id: 3, key: "partido3", numStr: "03", home: "", away: "" },
+        { id: 4, key: "partido4", numStr: "04", home: "", away: "" },
+        { id: 5, key: "partido5", numStr: "05", home: "", away: "" },
+        { id: 6, key: "partido6", numStr: "06", home: "", away: "" },
+      ];
+      setPartidosEditables(partidosVacios);
+      setImagenPreview(null);
+      setTextoExtraidoRaw("");
+      setMensajePartidos({
+        tipo: "success",
+        texto: data.message || "Jornada limpiada con éxito. Ha quedado totalmente en blanco.",
+      });
+
+      if (onPartidosActualizados) onPartidosActualizados(null, data.jornada?.numero || jornadaInput);
+      if (onActualizarUsuarios) onActualizarUsuarios();
+      if (onActualizarNotificaciones) onActualizarNotificaciones();
     } catch (err) {
       setMensajePartidos({ tipo: "error", texto: err.message });
     } finally {
@@ -1021,7 +1169,18 @@ export default function AdminView({
               <span className="text-xs text-stone-400 font-medium">Revisa los nombres antes de guardar</span>
             )}
 
-            <div className="flex items-center gap-3 ml-auto">
+            <div className="flex flex-wrap items-center gap-3 ml-auto">
+              <button
+                type="button"
+                id="btn-limpiar-jornada-completa"
+                onClick={limpiarJornadaCompleta}
+                disabled={guardandoPartidos}
+                title="Borra apuestas, partidos y foto para dejar la jornada totalmente en blanco"
+                className="px-6 py-4 rounded-full bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-700 text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer disabled:opacity-40"
+              >
+                🧹 Limpiar Jornada (Dejar en blanco)
+              </button>
+
               <button
                 type="button"
                 onClick={reiniciarPartidos}

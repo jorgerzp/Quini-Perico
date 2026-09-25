@@ -33,6 +33,10 @@ export default function Sidebar({
       id: "clasificacion",
       nombre: "Clasificación",
     },
+    {
+      id: "pagos",
+      nombre: "Pagos",
+    },
     ...(esSuperAdmin
       ? [
           {

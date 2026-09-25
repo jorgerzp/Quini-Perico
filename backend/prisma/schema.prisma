@@ -18,6 +18,7 @@ model Usuario {
   fecha_creacion DateTime @default(now())
   jugadas        Jugada[]
   notificaciones Notificacion[]
+  pagos          PagoUsuario[]
 }
 
 model Bote {
@@ -74,4 +75,25 @@ model Notificacion {
   resumen        String?  // Texto de resumen
   leida          Boolean  @default(false)
   fecha_creacion DateTime @default(now())
+}
+
+model PagoMes {
+  id             Int           @id @default(autoincrement())
+  mes            String        @unique // Ej: "Pago Octubre 2026"
+  cuota          Float         @default(10.0)
+  activo         Boolean       @default(true)
+  fecha_creacion DateTime      @default(now())
+  pagosUsuarios  PagoUsuario[]
+}
+
+model PagoUsuario {
+  id             Int       @id @default(autoincrement())
+  pagoMesId      Int
+  pagoMes        PagoMes   @relation(fields: [pagoMesId], references: [id], onDelete: Cascade)
+  usuarioId      Int
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id])
+  pagado         Boolean   @default(false)
+  fechaPago      DateTime?
+
+  @@unique([pagoMesId, usuarioId])
 }
