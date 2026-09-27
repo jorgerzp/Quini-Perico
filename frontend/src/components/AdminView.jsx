@@ -21,6 +21,7 @@ export default function AdminView({
   onActualizarNotificaciones,
 }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
+  const esDemo = usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo || usuarioActivo?.nombre?.toLowerCase() === "demo";
 
   // Estado Jornada Activa
   const [jornadaInput, setJornadaInput] = useState(numeroJornada || 7);
@@ -71,8 +72,8 @@ export default function AdminView({
 
   const fileInputRef = useRef(null);
 
-  // Si no es Jorge, pantalla de denegación
-  if (!esJorge) {
+  // Si no es Jorge ni Demo, pantalla de denegación
+  if (!esJorge && !esDemo) {
     return (
       <div className="max-w-xl mx-auto py-24 px-6 text-center">
         <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-12">
@@ -83,7 +84,7 @@ export default function AdminView({
             Acceso Restringido
           </h2>
           <p className="text-sm font-medium text-stone-500">
-            El panel Superadmin solo está habilitado para Jorge.
+            El panel Superadmin solo está habilitado para administradores.
           </p>
         </div>
       </div>
@@ -92,6 +93,10 @@ export default function AdminView({
 
   // Guardar número de jornada activa (Superadmin)
   const guardarNumeroJornada = async (numNuevo) => {
+    if (esDemo) {
+      setMensajeJornada({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se pueden modificar las jornadas." });
+      return;
+    }
     const val = parseInt(numNuevo, 10);
     if (isNaN(val) || val < 1) {
       setMensajeJornada({ tipo: "error", texto: "Introduce un número de jornada válido (1 o superior)." });
@@ -203,6 +208,10 @@ export default function AdminView({
 
   // Guardar los 6 partidos en el servidor
   const guardarPartidosEnServidor = async () => {
+    if (esDemo) {
+      setMensajePartidos({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se pueden guardar partidos." });
+      return;
+    }
     setGuardandoPartidos(true);
     setMensajePartidos(null);
 
@@ -243,6 +252,10 @@ export default function AdminView({
 
   // Sumar bote rápido
   const sumarBote = async (monto, conceptoTxt) => {
+    if (esDemo) {
+      setMensajeBote({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se pueden modificar los fondos." });
+      return;
+    }
     const val = parseFloat(monto);
     if (isNaN(val) || val <= 0) {
       setMensajeBote({ tipo: "error", texto: "Introduce una cantidad válida." });
@@ -280,6 +293,10 @@ export default function AdminView({
 
   // Resetear partidos a estado inicial
   const reiniciarPartidos = async () => {
+    if (esDemo) {
+      setMensajePartidos({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se pueden vaciar partidos." });
+      return;
+    }
     if (
       !window.confirm(
         "¿Estás seguro de que deseas vaciar los partidos de esta jornada? La sección de apuesta volverá a mostrar a los miembros: 'Aún no hay ningún quinigol disponible'."
@@ -321,6 +338,10 @@ export default function AdminView({
 
   // Limpiar por completo la jornada activa para dejarla en blanco (Superadmin)
   const limpiarJornadaCompleta = async () => {
+    if (esDemo) {
+      setMensajePartidos({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se puede limpiar la jornada." });
+      return;
+    }
     if (
       !window.confirm(
         "⚠️ ¿Estás completamente seguro de que deseas LIMPIAR la jornada activa para dejarla en blanco?\n\nEsta acción:\n- Borrará todas las apuestas de los miembros en esta jornada.\n- Borrará los partidos y la foto del boleto.\n- Permitirá a todos los miembros volver a rellenar cuando abras una nueva jornada."
@@ -367,6 +388,10 @@ export default function AdminView({
 
   // Resetear bote acumulado a 0.00 €
   const reiniciarBoteACero = async () => {
+    if (esDemo) {
+      setMensajeBote({ tipo: "error", texto: "Modo Demostración: Estás en modo solo lectura. No se puede reiniciar el bote." });
+      return;
+    }
     if (
       !window.confirm(
         "¿Seguro que deseas poner el bote a 0.00 € y borrar todo el historial de ganancias?"
@@ -397,6 +422,23 @@ export default function AdminView({
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20 text-[#4a4641]">
+      {/* Banner de Modo Demostración */}
+      {esDemo && (
+        <div className="bg-amber-500/15 border border-amber-500/40 rounded-3xl p-6 backdrop-blur-xl flex items-start gap-4 shadow-sm animate-in fade-in">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-950 flex items-center justify-center shrink-0 text-xl font-bold">
+            👁️
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-amber-950">
+              Panel Superadmin en Modo Demostración (Solo Lectura)
+            </h3>
+            <p className="text-xs text-amber-900/90 leading-relaxed font-medium">
+              Estás explorando el panel de Superadmin como invitado. Puedes ver la configuración oficial, el estado de la jornada, el sistema de escaneo OCR para boletos de Quinigol, notificaciones y controles del bote. Todas las funciones de guardado y edición están desactivadas para salvaguardar los datos reales de la peña.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
         <div>
           <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-3">

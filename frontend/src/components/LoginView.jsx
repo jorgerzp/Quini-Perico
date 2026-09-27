@@ -9,20 +9,7 @@ export default function LoginView({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const nombreLimpio = nombre.trim();
-    if (!nombreLimpio) {
-      setError("Por favor, introduce tu nombre de usuario.");
-      return;
-    }
-
-    if (!password) {
-      setError("Por favor, introduce la contraseña.");
-      return;
-    }
-
+  const ejecutarLogin = async (user, pass) => {
     setLoading(true);
     setError(null);
 
@@ -31,8 +18,8 @@ export default function LoginView({ onLoginSuccess }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nombre: nombreLimpio,
-          password: password.trim(),
+          nombre: user.trim(),
+          password: pass.trim(),
         }),
       });
 
@@ -56,10 +43,33 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const nombreLimpio = nombre.trim();
+    if (!nombreLimpio) {
+      setError("Por favor, introduce tu nombre de usuario.");
+      return;
+    }
+
+    if (!password) {
+      setError("Por favor, introduce la contraseña.");
+      return;
+    }
+
+    await ejecutarLogin(nombreLimpio, password);
+  };
+
+  const handleAccesoDemo = async () => {
+    setNombre("demo");
+    setPassword("demo");
+    await ejecutarLogin("demo", "demo");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 sm:p-12 antialiased text-[#4a4641] font-sans">
       <div className="w-full max-w-lg bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-12">
-        <div className="mb-10">
+        <div className="mb-8">
           <p className="text-xs font-semibold tracking-widest text-stone-400 uppercase mb-3">
             Peña Oficial
           </p>
@@ -67,11 +77,11 @@ export default function LoginView({ onLoginSuccess }) {
             QUINI-PERICO
           </h1>
           <p className="text-sm font-medium text-stone-500 tracking-tight">
-            Acceso a la peña. Introduce tu nombre y la contraseña unificada.
+            Acceso a la peña. Introduce tus credenciales o utiliza el acceso de demostración.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="input-nombre" className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-2 block">
               Nombre de Usuario
@@ -80,7 +90,7 @@ export default function LoginView({ onLoginSuccess }) {
               id="input-nombre"
               type="text"
               autoComplete="username"
-              placeholder="Ej: Jorge, Rafa, Miguel, Acuña..."
+              placeholder="Introduce tu usuario..."
               value={nombre}
               onChange={(e) => {
                 setNombre(e.target.value);
@@ -95,9 +105,6 @@ export default function LoginView({ onLoginSuccess }) {
               <label htmlFor="input-password" className="text-xs font-semibold uppercase tracking-widest text-stone-500">
                 Contraseña
               </label>
-              <span className="text-xs text-stone-400 font-mono tracking-tight">
-                PuertoPerico
-              </span>
             </div>
 
             <div className="relative">
@@ -105,7 +112,7 @@ export default function LoginView({ onLoginSuccess }) {
                 id="input-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="Introduce tu contraseña"
+                placeholder="Introduce tu contraseña..."
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -143,19 +150,53 @@ export default function LoginView({ onLoginSuccess }) {
           </button>
         </form>
 
-        <div className="mt-10 pt-6 border-t border-white/60 text-center space-y-2">
-          <p className="text-xs text-stone-500 font-medium">
-            Miembros de la peña:{" "}
-            <span className="text-stone-800 font-semibold">
-              Jorge, Rafa, Miguel, Acuña, Andrés, Mora, Vergara, Ale
-            </span>
-          </p>
-          <p className="text-xs text-stone-400 font-mono">
-            Contraseña unificada: <span className="text-stone-600 font-semibold">PuertoPerico</span>
-          </p>
+        {/* Acceso Modo Demo (Demostración Pública) */}
+        <div className="mt-8 pt-6 border-t border-white/60">
+          <div className="bg-white/40 border border-white/60 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                  Acceso Modo Demostración
+                </span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-stone-200/80 text-stone-600 px-2 py-0.5 rounded-full">
+                Solo Lectura
+              </span>
+            </div>
+
+            <p className="text-xs text-stone-600 leading-relaxed font-medium">
+              Explora libremente todas las secciones de la aplicación sin alterar datos utilizando estas credenciales:
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 bg-white/60 p-3 rounded-xl border border-white/70">
+              <div>
+                <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block">
+                  Usuario
+                </span>
+                <span className="font-mono font-bold text-stone-800 text-sm">demo</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block">
+                  Contraseña
+                </span>
+                <span className="font-mono font-bold text-stone-800 text-sm">demo</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              id="btn-login-demo"
+              onClick={handleAccesoDemo}
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-bold tracking-tight transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              <span>Acceder directamente como Demo</span>
+              <span>→</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

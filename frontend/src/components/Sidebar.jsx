@@ -15,6 +15,8 @@ export default function Sidebar({
 
   const esSuperAdmin =
     usuarioActivo?.rol === "superadmin" || usuarioActivo?.nombre === "Jorge";
+  const esDemo =
+    usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo || usuarioActivo?.nombre?.toLowerCase() === "demo";
 
   const elementosMenu = [
     {
@@ -37,12 +39,12 @@ export default function Sidebar({
       id: "pagos",
       nombre: "Pagos",
     },
-    ...(esSuperAdmin
+    ...(esSuperAdmin || esDemo
       ? [
           {
             id: "admin",
-            nombre: "Superadmin",
-            esNotif: notificacionesNoLeidas > 0,
+            nombre: esDemo ? "Superadmin (Demo)" : "Superadmin",
+            esNotif: !esDemo && notificacionesNoLeidas > 0,
           },
         ]
       : []),
@@ -101,10 +103,10 @@ export default function Sidebar({
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 relative">
           <div className="hidden md:block text-right">
             <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
-              {esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+              {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
             </span>
             <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
-              {nombreFormateado}
+              {esDemo ? "Usuario Demo" : nombreFormateado}
             </p>
           </div>
 
@@ -141,13 +143,13 @@ export default function Sidebar({
       >
         <div className="mb-6 pb-4 border-b border-white/60">
           <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
-            {esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+            {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
           </span>
           <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-1">
-            {nombreFormateado}
+            {esDemo ? "Usuario Demo" : nombreFormateado}
           </p>
           <p className="text-xs text-stone-400 font-medium mt-0.5">
-            {usuarioActivo?.aciertos ?? 0} aciertos acumulados
+            {esDemo ? "Acceso de invitado (solo lectura)" : `${usuarioActivo?.aciertos ?? 0} aciertos acumulados`}
           </p>
         </div>
 

@@ -84,7 +84,7 @@ export default function BoteView({
             FONDO OFICIAL ACUMULADO · SINDICATO
           </span>
 
-          {esJorge && onIrAdmin && (
+          {(esJorge || usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo) && onIrAdmin && (
             <button
               type="button"
               onClick={onIrAdmin}

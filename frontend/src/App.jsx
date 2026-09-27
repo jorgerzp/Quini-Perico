@@ -86,6 +86,9 @@ export default function App() {
         // Sincronizar usuario activo
         setUsuarioActivo((actual) => {
           if (actual) {
+            if (actual.rol === "demo" || actual.isDemo) {
+              return actual;
+            }
             const refrescado = data.find((u) => u.id === actual.id || u.nombre === actual.nombre);
             if (refrescado) {
               try {
@@ -96,6 +99,9 @@ export default function App() {
             return actual;
           }
           if (usuarioLogueado) {
+            if (usuarioLogueado.rol === "demo" || usuarioLogueado.isDemo) {
+              return usuarioLogueado;
+            }
             const match = data.find((u) => u.id === usuarioLogueado.id || u.nombre === usuarioLogueado.nombre);
             if (match) {
               try {
@@ -212,16 +218,21 @@ export default function App() {
     }
   };
 
-  // Protección de acceso: si un miembro no-admin intenta estar en "admin", redirigir
+  // Protección de acceso: si un miembro no-admin y no-demo intenta estar en "admin", redirigir
   useEffect(() => {
     const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
-    if (seccionActiva === "admin" && !esJorge) {
+    const esDemo = usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo;
+    if (seccionActiva === "admin" && !esJorge && !esDemo) {
       setSeccionActiva("boleto");
     }
   }, [seccionActiva, usuarioActivo]);
 
   // Sumar rápido al bote desde la vista de bote
   const sumarBoteRapido = async (cantidad, concepto) => {
+    if (usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo) {
+      alert("Modo Demostración: Esta acción no está permitida en modo solo lectura.");
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/api/bote/sumar`, {
         method: "POST",
@@ -239,6 +250,8 @@ export default function App() {
       console.error(err);
     }
   };
+
+  const esDemo = usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo;
 
   return (
     <div className="relative min-h-screen text-[#4a4641] font-sans antialiased selection:bg-stone-800 selection:text-white">
@@ -264,6 +277,14 @@ export default function App() {
         />
       ) : (
         <div className="pt-32">
+          {/* Banner identificador de Modo Demostración */}
+          {esDemo && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 text-white backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-xs font-medium shadow-lg flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Modo Demostración (Solo Lectura) · Puedes explorar toda la app libremente</span>
+            </div>
+          )}
+
           <Sidebar
             seccionActiva={seccionActiva}
             setSeccionActiva={setSeccionActiva}

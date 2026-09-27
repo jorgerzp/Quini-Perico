@@ -109,12 +109,6 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "Introduce tu nombre y la contraseña." });
     }
 
-    if (password.trim() !== "PuertoPerico") {
-      return res.status(401).json({ error: "Contraseña incorrecta. Recuerda que es PuertoPerico." });
-    }
-
-    // Búsqueda flexible (insensible a mayúsculas y acentos) para los 8 miembros
-    const usuarios = await prisma.usuario.findMany();
     const normalize = (str) =>
       str
         .toLowerCase()
@@ -123,11 +117,43 @@ app.post("/api/login", async (req, res) => {
         .trim();
 
     const cleanInput = normalize(nombre);
+    const cleanPassword = password.trim();
+
+    // Acceso Demo (Modo Solo Lectura)
+    if (cleanInput === "demo" && cleanPassword.toLowerCase() === "demo") {
+      const jornadaActiva = await prisma.jornada.findFirst({
+        where: { activa: true },
+      });
+
+      return res.json({
+        message: "Acceso Demo concedido (Modo Solo Lectura).",
+        usuario: {
+          id: 999999,
+          nombre: "Demo",
+          rol: "demo",
+          isDemo: true,
+          puntos: 0,
+          aciertos: 0,
+          haJugado: false,
+          jugadaActual: null,
+          jornadaActualId: jornadaActiva?.id || null,
+          jornadaActualNumero: jornadaActiva?.numero || null,
+        },
+      });
+    }
+
+    if (cleanPassword !== "PuertoPerico") {
+      return res.status(401).json({ error: "Contraseña incorrecta." });
+    }
+
+    // Búsqueda flexible (insensible a mayúsculas y acentos) para los 8 miembros
+    const usuarios = await prisma.usuario.findMany();
+
     const usuario = usuarios.find((u) => normalize(u.nombre) === cleanInput);
 
     if (!usuario) {
       return res.status(404).json({
-        error: `El usuario '${nombre.trim()}' no existe en la peña. Los miembros son: Jorge, Rafa, Miguel, Acuña, Andrés, Mora, Vergara, Ale.`,
+        error: `El usuario '${nombre.trim()}' no existe en la peña.`,
       });
     }
 
@@ -152,6 +178,7 @@ app.post("/api/login", async (req, res) => {
         id: usuario.id,
         nombre: usuario.nombre,
         rol: usuario.rol,
+        isDemo: false,
         puntos: usuario.puntos,
         aciertos: usuario.aciertos,
         haJugado: !!jugada,
@@ -407,6 +434,11 @@ app.post("/api/jugadas", async (req, res) => {
 
     if (!datosPronosticos || Object.keys(datosPronosticos).length === 0) {
       return res.status(400).json({ error: "Debes enviar un pronóstico válido." });
+    }
+
+    // Rechazar si es cuenta Demo (Solo Lectura)
+    if (Number(usuarioId) === 999999) {
+      return res.status(403).json({ error: "Modo Demostración: La cuenta demo es de solo lectura y no puede sellar apuestas." });
     }
 
     // Buscar usuario o asignar Jorge por defecto si no viene id

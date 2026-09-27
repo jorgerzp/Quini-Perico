@@ -31,7 +31,8 @@ export default function BoletoView({
 
   const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
-  const userName = usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
+  const isDemo = usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo || usuarioActivo?.nombre?.toLowerCase() === "demo";
+  const userName = isDemo ? "INVITADO DEMO" : usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
 
   // Resetear estado al cambiar de usuario o jornada
   useEffect(() => {
@@ -273,6 +274,14 @@ export default function BoletoView({
   const handleConfirmTicket = async () => {
     if (submitting || yaHaJugado) return;
 
+    if (isDemo) {
+      setFeedback({
+        type: "error",
+        text: "Modo Demostración: Estás en una cuenta de demostración (solo lectura). No es posible sellar apuestas oficiales.",
+      });
+      return;
+    }
+
     if (!isComplete) {
       setFeedback({
         type: "error",
@@ -343,9 +352,16 @@ export default function BoletoView({
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
       <section className="pb-8 mb-2 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
-        <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-3">
-          JORNADA {numeroJornada} · APUESTA OFICIAL
-        </span>
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
+            JORNADA {numeroJornada} · APUESTA OFICIAL
+          </span>
+          {isDemo && (
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-900 border border-amber-500/30 px-3 py-1 rounded-full">
+              Modo Demostración · Solo Lectura
+            </span>
+          )}
+        </div>
 
         <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter text-stone-800">
           APUESTA DE {userName}
@@ -512,17 +528,21 @@ export default function BoletoView({
         <button
           type="button"
           id="btn-confirmar-boleto"
-          disabled={submitting || !isComplete || Boolean(usuarioCoincidente) || yaHaJugado}
+          disabled={submitting || (!isDemo && (!isComplete || Boolean(usuarioCoincidente))) || yaHaJugado}
           onClick={handleConfirmTicket}
           className={`w-full py-4 px-8 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
-            usuarioCoincidente
+            isDemo
+              ? "bg-stone-800 text-amber-200 border border-amber-400/30 cursor-pointer hover:bg-stone-700"
+              : usuarioCoincidente
               ? "bg-red-950/40 border border-red-500/30 text-red-300 cursor-not-allowed"
               : isComplete && !yaHaJugado && !submitting
               ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 hover-negro-brillante cursor-pointer"
               : "bg-white/30 border border-white/50 text-stone-400 cursor-not-allowed"
           }`}
         >
-          {submitting
+          {isDemo
+            ? "Modo Demostración · Solo Lectura"
+            : submitting
             ? "Sellando Apuesta..."
             : usuarioCoincidente
             ? `Apuesta idéntica a ${usuarioCoincidente.nombre} (Debes cambiar un resultado)`
@@ -530,7 +550,9 @@ export default function BoletoView({
         </button>
 
         <p className="text-xs text-stone-400 uppercase tracking-widest">
-          {usuarioCoincidente
+          {isDemo
+            ? "Exploración de boleto habilitada (guardado oficial deshabilitado en cuenta demo)"
+            : usuarioCoincidente
             ? "Modifica cualquier pronóstico para poder sellar"
             : isComplete
             ? "12 pronósticos listos para el escrutinio"
