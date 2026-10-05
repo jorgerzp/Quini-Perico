@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
+import { TeamName } from "../utils/teamUtils";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
@@ -112,19 +113,19 @@ export default function ResultadosView({
           {partidos.map((partido, idx) => {
             const res = resultados[partido.key] || { local: "-", visitante: "-" };
             return (
-              <div key={partido.id || idx} className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl flex items-center justify-between gap-6">
-                <div>
+              <div key={partido.id || idx} className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl flex items-center justify-between gap-4 sm:gap-6">
+                <div className="min-w-0 flex-1">
                   <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase block mb-1">
                     PARTIDO {String(idx + 1).padStart(2, "0")}
                   </span>
-                  <p className="text-xl sm:text-2xl font-semibold tracking-tight text-stone-800">
-                    {partido.home} <span className="text-stone-400 font-normal">vs</span> {partido.away}
+                  <p className="text-base sm:text-xl md:text-2xl font-semibold tracking-tight text-stone-800 break-words leading-snug">
+                    {partido.home} <span className="text-stone-400 font-normal mx-1">vs</span> {partido.away}
                   </p>
                 </div>
 
-                <div className="text-3xl sm:text-4xl font-extrabold text-stone-800 font-mono tracking-tight shrink-0">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-stone-800 font-mono tracking-tight shrink-0 pl-2">
                   <span>{res.local || "-"}</span>
-                  <span className="text-stone-300 mx-2">·</span>
+                  <span className="text-stone-300 mx-1.5 sm:mx-2">·</span>
                   <span>{res.visitante || "-"}</span>
                 </div>
               </div>
@@ -300,11 +301,9 @@ export default function ResultadosView({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
-                    {partido.home}
-                  </span>
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                  <TeamName name={partido.home} />
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {GOAL_OPTIONS.map((gol) => {
                       const sel = res.local === gol;
                       return (
@@ -313,7 +312,7 @@ export default function ResultadosView({
                           type="button"
                           id={`res-match-${idx + 1}-home-${gol}`}
                           onClick={() => seleccionarGol(partido.key, "local", gol)}
-                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
+                          className={`font-mono text-sm sm:text-base cursor-pointer flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 ${
                             sel
                               ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
                               : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
@@ -326,11 +325,9 @@ export default function ResultadosView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
-                    {partido.away}
-                  </span>
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                  <TeamName name={partido.away} />
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {GOAL_OPTIONS.map((gol) => {
                       const sel = res.visitante === gol;
                       return (
@@ -339,7 +336,7 @@ export default function ResultadosView({
                           type="button"
                           id={`res-match-${idx + 1}-away-${gol}`}
                           onClick={() => seleccionarGol(partido.key, "visitante", gol)}
-                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
+                          className={`font-mono text-sm sm:text-base cursor-pointer flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 ${
                             sel
                               ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
                               : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
@@ -352,6 +349,7 @@ export default function ResultadosView({
                   </div>
                 </div>
               </div>
+
             </div>
           );
         })}

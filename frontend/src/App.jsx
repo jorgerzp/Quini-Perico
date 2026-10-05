@@ -75,6 +75,36 @@ export default function App() {
     }
   };
 
+  const borrarNotificacion = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/notificaciones/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        cargarNotificaciones();
+      }
+    } catch (err) {
+      console.error("Error al borrar notificación:", err);
+    }
+  };
+
+  const borrarTodasNotificaciones = async (jornadaNum) => {
+    try {
+      const url = jornadaNum
+        ? `${API_URL}/api/notificaciones?jornada=${jornadaNum}`
+        : `${API_URL}/api/notificaciones`;
+      const res = await fetch(url, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        cargarNotificaciones();
+      }
+    } catch (err) {
+      console.error("Error al borrar notificaciones:", err);
+    }
+  };
+
+
   // Cargar usuarios
   const cargarUsuarios = useCallback(async () => {
     try {
@@ -178,12 +208,14 @@ export default function App() {
     recargarTodo();
   }, []); // Cargar sólo al montar la aplicación
 
-  // Sincronización en vivo: al cambiar a boleto o resultados, cargar partidos de inmediato
+  // Sincronización en vivo: al cambiar a boleto o resultados, cargar partidos y usuarios de inmediato
   useEffect(() => {
     if (seccionActiva === "boleto" || seccionActiva === "resultados") {
       cargarPartidos();
+      cargarUsuarios();
     }
-  }, [seccionActiva, cargarPartidos]);
+  }, [seccionActiva, cargarPartidos, cargarUsuarios]);
+
 
   // Polling cada 6s para partidos y notificaciones
   useEffect(() => {
@@ -353,7 +385,10 @@ export default function App() {
         )}
 
         {seccionActiva === "pagos" && (
-          <PagosView usuarioActivo={usuarioActivo} />
+          <PagosView
+            usuarioActivo={usuarioActivo}
+            onActualizarUsuarios={cargarUsuarios}
+          />
         )}
 
         {seccionActiva === "admin" && (
@@ -367,6 +402,8 @@ export default function App() {
             notificacionesNoLeidas={notificacionesNoLeidas}
             onMarcarNotificacionLeida={marcarNotificacionLeida}
             onMarcarTodasNotificacionesLeidas={marcarTodasNotificacionesLeidas}
+            onBorrarNotificacion={borrarNotificacion}
+            onBorrarTodasNotificaciones={borrarTodasNotificaciones}
             onActualizarNotificaciones={cargarNotificaciones}
             onJornadaActualizada={(n) => {
               setNumeroJornada(n);

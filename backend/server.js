@@ -100,6 +100,45 @@ async function seedDatabase() {
 
 seedDatabase();
 
+// Función auxiliar para verificar si un usuario está al corriente de las cuotas de meses activos
+async function getEstadoPagosUsuario(usuarioId, esSuperadmin = false) {
+  if (esSuperadmin) {
+    return {
+      haPagadoMes: true,
+      mesesPendientes: [],
+      mesPendienteTexto: "",
+    };
+  }
+
+  const mesesActivos = await prisma.pagoMes.findMany({
+    where: { activo: true },
+    include: { pagosUsuarios: true },
+    orderBy: { id: "asc" },
+  });
+
+  if (mesesActivos.length === 0) {
+    return {
+      haPagadoMes: true,
+      mesesPendientes: [],
+      mesPendienteTexto: "",
+    };
+  }
+
+  const pendientes = [];
+  for (const m of mesesActivos) {
+    const pago = m.pagosUsuarios.find((pu) => pu.usuarioId === usuarioId);
+    if (!pago || !pago.pagado) {
+      pendientes.push(m.mes);
+    }
+  }
+
+  return {
+    haPagadoMes: pendientes.length === 0,
+    mesesPendientes: pendientes,
+    mesPendienteTexto: pendientes.join(", "),
+  };
+}
+
 // --- ENDPOINT AUTENTICACIÓN (LOGIN) ---
 app.post("/api/login", async (req, res) => {
   try {
@@ -172,6 +211,10 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
+    // Verificar estado de pago de cuotas mensuales activas
+    const esSuperadmin = usuario.nombre === "Jorge" || usuario.rol === "superadmin";
+    const estadoPagos = await getEstadoPagosUsuario(usuario.id, esSuperadmin);
+
     res.json({
       message: "Login correcto.",
       usuario: {
@@ -185,6 +228,9 @@ app.post("/api/login", async (req, res) => {
         jugadaActual: jugada ? JSON.parse(jugada.pronosticos || "{}") : null,
         jornadaActualId: jornadaActiva?.id || null,
         jornadaActualNumero: jornadaActiva?.numero || null,
+        haPagadoMes: estadoPagos.haPagadoMes,
+        mesesPendientes: estadoPagos.mesesPendientes,
+        mesPendienteTexto: estadoPagos.mesPendienteTexto,
       },
     });
   } catch (error) {
@@ -212,14 +258,39 @@ app.get("/api/usuarios", async (_req, res) => {
       });
     }
 
+    // Obtener meses activos para evaluar el estado de pago de cada miembro
+    const mesesActivos = await prisma.pagoMes.findMany({
+      where: { activo: true },
+      include: { pagosUsuarios: true },
+      orderBy: { id: "asc" },
+    });
+
     const usuariosConEstado = usuarios.map((u) => {
       const jugada = jugadasJornada.find((j) => j.usuarioId === u.id);
+      const esSuperadmin = u.nombre === "Jorge" || u.rol === "superadmin";
+
+      let haPagadoMes = true;
+      let pendientes = [];
+
+      if (!esSuperadmin && mesesActivos.length > 0) {
+        for (const m of mesesActivos) {
+          const pago = m.pagosUsuarios.find((pu) => pu.usuarioId === u.id);
+          if (!pago || !pago.pagado) {
+            pendientes.push(m.mes);
+          }
+        }
+        haPagadoMes = pendientes.length === 0;
+      }
+
       return {
         ...u,
         haJugado: !!jugada,
         jugadaActual: jugada ? JSON.parse(jugada.pronosticos || "{}") : null,
         jornadaActualId: jornadaActiva?.id || null,
         jornadaActualNumero: jornadaActiva?.numero || null,
+        haPagadoMes,
+        mesesPendientes: pendientes,
+        mesPendienteTexto: pendientes.join(", "),
       };
     });
 
@@ -518,6 +589,20 @@ app.post("/api/jugadas", async (req, res) => {
       });
     }
 
+    // Validar si el usuario está al corriente de pago de los meses activos (Jorge está exento)
+    const esSuperadmin = usuario.nombre === "Jorge" || usuario.rol === "superadmin";
+    if (!esSuperadmin) {
+      const estadoPagos = await getEstadoPagosUsuario(usuario.id, false);
+      if (!estadoPagos.haPagadoMes) {
+        return res.status(403).json({
+          error: `No has abonado la cuota de ${estadoPagos.mesPendienteTexto}. Debes abonar el mes correspondiente para poder realizar tu apuesta.`,
+          noPagado: true,
+          mesesPendientes: estadoPagos.mesesPendientes,
+        });
+      }
+    }
+
+
     const jugada = await prisma.jugada.create({
       data: {
         usuarioId: usuario.id,
@@ -620,6 +705,42 @@ app.post("/api/notificaciones/marcar-todas-leidas", async (_req, res) => {
     res.status(500).json({ error: "No se pudieron marcar como leídas." });
   }
 });
+
+// Eliminar una notificación individual (con la cruz X)
+app.delete("/api/notificaciones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.notificacion.delete({
+      where: { id: Number(id) },
+    });
+    res.json({ message: "Notificación eliminada correctamente." });
+  } catch (error) {
+    console.error("Error al eliminar notificación:", error);
+    res.status(500).json({ error: "No se pudo eliminar la notificación." });
+  }
+});
+
+// Eliminar todas las notificaciones o filtrar por jornada
+app.delete("/api/notificaciones", async (req, res) => {
+  try {
+    const { jornada } = req.query;
+    const where = {};
+    if (jornada) {
+      where.jornadaNumero = Number(jornada);
+    }
+    const resultado = await prisma.notificacion.deleteMany({ where });
+    res.json({
+      message: jornada
+        ? `Notificaciones de la jornada ${jornada} eliminadas.`
+        : "Todas las notificaciones eliminadas.",
+      totalEliminadas: resultado.count,
+    });
+  } catch (error) {
+    console.error("Error al eliminar notificaciones:", error);
+    res.status(500).json({ error: "No se pudieron eliminar las notificaciones." });
+  }
+});
+
 
 // --- ENDPOINTS PARTIDOS DE LA JORNADA (OCR Y CONFIGURACIÓN) ---
 app.get("/api/jornada/partidos", async (_req, res) => {

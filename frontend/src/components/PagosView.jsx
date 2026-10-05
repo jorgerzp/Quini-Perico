@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 
-export default function PagosView({ usuarioActivo }) {
+export default function PagosView({ usuarioActivo, onActualizarUsuarios }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
 
   const [meses, setMeses] = useState([]);
@@ -77,6 +77,9 @@ export default function PagosView({ usuarioActivo }) {
           origin: { y: 0.6 },
         });
       }
+      if (onActualizarUsuarios) {
+        onActualizarUsuarios();
+      }
     } catch (err) {
       alert("Error al actualizar el pago: " + err.message);
     } finally {
@@ -113,6 +116,9 @@ export default function PagosView({ usuarioActivo }) {
         spread: 80,
         origin: { y: 0.5 },
       });
+      if (onActualizarUsuarios) {
+        onActualizarUsuarios();
+      }
     } catch (err) {
       alert(err.message);
     } finally {

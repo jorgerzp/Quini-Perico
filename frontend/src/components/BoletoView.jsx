@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
+import { TeamName } from "../utils/teamUtils";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
@@ -51,6 +52,16 @@ export default function BoletoView({
     apuestaRecienGuardada ||
     (haJugadoReal && coincideJornada)
   );
+
+  // Estado de Pago de Cuotas Mensuales (Jorge y Demo están exentos)
+  const haPagadoMes = isJorge || isDemo || (
+    userEnLista?.haPagadoMes !== undefined
+      ? userEnLista.haPagadoMes
+      : (usuarioActivo?.haPagadoMes !== undefined ? usuarioActivo.haPagadoMes : true)
+  );
+  const tienePagoPendiente = !isJorge && !isDemo && !haPagadoMes;
+  const mesPendienteTexto = userEnLista?.mesPendienteTexto || usuarioActivo?.mesPendienteTexto || "el mes en curso";
+
 
   useEffect(() => {
     if (usuarioActivo?.jugadaActual && coincideJornada) {
@@ -274,6 +285,14 @@ export default function BoletoView({
   const handleConfirmTicket = async () => {
     if (submitting || yaHaJugado) return;
 
+    if (tienePagoPendiente) {
+      setFeedback({
+        type: "error",
+        text: `Debes abonar ${mesPendienteTexto} para poder sellar tu apuesta en la peña.`,
+      });
+      return;
+    }
+
     if (isDemo) {
       setFeedback({
         type: "error",
@@ -432,12 +451,10 @@ export default function BoletoView({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
-                    {match.home}
-                  </span>
+                <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                  <TeamName name={match.home} />
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {GOAL_OPTIONS.map((g) => {
                       const selected = current.local === g;
                       return (
@@ -446,7 +463,7 @@ export default function BoletoView({
                           type="button"
                           id={`btn-match-${idx + 1}-home-${g}`}
                           onClick={() => handleSelectGoal(key, "local", g)}
-                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
+                          className={`font-mono text-sm sm:text-base cursor-pointer flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 ${
                             selected
                               ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
                               : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
@@ -459,12 +476,10 @@ export default function BoletoView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-2xl font-semibold tracking-tight text-stone-800 truncate">
-                    {match.away}
-                  </span>
+                <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                  <TeamName name={match.away} />
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {GOAL_OPTIONS.map((g) => {
                       const selected = current.visitante === g;
                       return (
@@ -473,7 +488,7 @@ export default function BoletoView({
                           type="button"
                           id={`btn-match-${idx + 1}-away-${g}`}
                           onClick={() => handleSelectGoal(key, "visitante", g)}
-                          className={`font-mono text-base cursor-pointer flex items-center justify-center w-12 h-12 ${
+                          className={`font-mono text-sm sm:text-base cursor-pointer flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 ${
                             selected
                               ? "bg-gradient-to-b from-neutral-900 to-black text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20 scale-105 transition-all duration-300"
                               : "bg-white/30 border border-white/50 text-stone-600 font-medium rounded-2xl hover:bg-white/50 hover-negro-brillante transition-all duration-300"
@@ -486,6 +501,7 @@ export default function BoletoView({
                   </div>
                 </div>
               </div>
+
             </div>
           );
         })}
@@ -493,6 +509,27 @@ export default function BoletoView({
 
       {/* Botón de Acción Principal y Mensajes de Estado */}
       <section className="pt-10 max-w-xl mx-auto text-center space-y-4">
+        {/* Banner prominente si el usuario no ha abonado el mes correspondiente */}
+        {tienePagoPendiente && (
+          <div className="p-6 rounded-3xl text-center bg-amber-950/90 border border-amber-500/50 shadow-[0_12px_36px_rgba(245,158,11,0.25)] text-white backdrop-blur-xl animate-in fade-in space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-bold uppercase tracking-wider text-xs border border-amber-500/30">
+              <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>Cuota Mensual Pendiente</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-white">
+              Debes abonar {mesPendienteTexto}
+            </h3>
+            <p className="text-sm text-stone-200 leading-relaxed max-w-md mx-auto">
+              Para poder sellar tu apuesta oficial de la peña, debes estar al corriente de pago de{" "}
+              <strong className="text-amber-300 font-semibold">{mesPendienteTexto}</strong>.
+              <br />
+              Por favor, realiza el abono por Bizum a Jorge o contacta con el Superadmin para validar tu pago.
+            </p>
+          </div>
+        )}
+
         {/* Banner prominente si la apuesta coincide al 100% con otro participante */}
         {usuarioCoincidente && (
           <div className="p-6 rounded-3xl text-center bg-red-950/90 border border-red-500/50 shadow-[0_12px_36px_rgba(239,68,68,0.25)] text-white backdrop-blur-xl animate-in fade-in space-y-3">
@@ -528,11 +565,13 @@ export default function BoletoView({
         <button
           type="button"
           id="btn-confirmar-boleto"
-          disabled={submitting || (!isDemo && (!isComplete || Boolean(usuarioCoincidente))) || yaHaJugado}
+          disabled={submitting || tienePagoPendiente || (!isDemo && (!isComplete || Boolean(usuarioCoincidente))) || yaHaJugado}
           onClick={handleConfirmTicket}
           className={`w-full py-4 px-8 rounded-full text-base md:text-lg font-semibold tracking-tight transition-all ${
             isDemo
               ? "bg-stone-800 text-amber-200 border border-amber-400/30 cursor-pointer hover:bg-stone-700"
+              : tienePagoPendiente
+              ? "bg-amber-950/40 border border-amber-500/40 text-amber-300/80 cursor-not-allowed shadow-none"
               : usuarioCoincidente
               ? "bg-red-950/40 border border-red-500/30 text-red-300 cursor-not-allowed"
               : isComplete && !yaHaJugado && !submitting
@@ -544,6 +583,8 @@ export default function BoletoView({
             ? "Modo Demostración · Solo Lectura"
             : submitting
             ? "Sellando Apuesta..."
+            : tienePagoPendiente
+            ? `Pago Pendiente · Debes abonar ${mesPendienteTexto}`
             : usuarioCoincidente
             ? `Apuesta idéntica a ${usuarioCoincidente.nombre} (Debes cambiar un resultado)`
             : "Confirmar y Sellar Apuesta Oficial"}
@@ -552,6 +593,8 @@ export default function BoletoView({
         <p className="text-xs text-stone-400 uppercase tracking-widest">
           {isDemo
             ? "Exploración de boleto habilitada (guardado oficial deshabilitado en cuenta demo)"
+            : tienePagoPendiente
+            ? `Abona ${mesPendienteTexto} para poder sellar tu apuesta`
             : usuarioCoincidente
             ? "Modifica cualquier pronóstico para poder sellar"
             : isComplete
@@ -620,14 +663,18 @@ export default function BoletoView({
                       className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3 hover:border-stone-400 transition-colors"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-100">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold text-stone-400 uppercase">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-[10px] font-mono font-bold text-stone-400 uppercase shrink-0">
                             P0{idx + 1}
                           </span>
-                          <span className="text-sm font-extrabold text-stone-900">
+                          <span
+                            className="text-xs sm:text-sm font-extrabold text-stone-900 break-words leading-snug"
+                            title={`${homeName} vs ${awayName}`}
+                          >
                             {homeName} <span className="text-stone-400 font-normal">vs</span> {awayName}
                           </span>
                         </div>
+
 
                         <div className="flex items-center gap-1.5 font-mono font-extrabold text-xs">
                           <span className="px-2.5 py-1 rounded-lg bg-stone-900 text-white shadow-xs">

@@ -18,6 +18,8 @@ export default function AdminView({
   notificacionesNoLeidas = 0,
   onMarcarNotificacionLeida,
   onMarcarTodasNotificacionesLeidas,
+  onBorrarNotificacion,
+  onBorrarTodasNotificaciones,
   onActualizarNotificaciones,
 }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
@@ -69,6 +71,13 @@ export default function AdminView({
 
   // Estado Notificaciones
   const [notifSeleccionadaId, setNotifSeleccionadaId] = useState(null);
+  const [soloJornadaMarcada, setSoloJornadaMarcada] = useState(true);
+
+  // Filtrar notificaciones según la jornada marcada si está activo (por defecto true)
+  const notificacionesFiltradas = soloJornadaMarcada
+    ? notificaciones.filter((n) => Number(n.jornadaNumero) === Number(numeroJornada))
+    : notificaciones;
+  const noLeidasFiltradas = notificacionesFiltradas.filter((n) => !n.leida).length;
 
   const fileInputRef = useRef(null);
 
@@ -518,128 +527,202 @@ export default function AdminView({
 
       {/* SECCIÓN NOTIFICACIONES DE APUESTAS RECIBIDAS EN VIVO */}
       <div id="seccion-notificaciones-admin" className="space-y-6 pb-10 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
-                Notificaciones en Vivo
-              </span>
-              {notificacionesNoLeidas > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold bg-red-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.7)] badge-notif-pulse">
-                  {notificacionesNoLeidas} nuevas
-                </span>
-              )}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
+                    Notificaciones en Vivo
+                  </span>
+                  {noLeidasFiltradas > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold bg-red-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.7)] badge-notif-pulse">
+                      {noLeidasFiltradas} nuevas
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-stone-800">
+                  Apuestas Recibidas
+                </h3>
+                <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
+                  Mostrando apuestas recibidas de los miembros.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Selector de filtro por jornada */}
+                <div className="flex items-center bg-white/40 p-1 rounded-2xl border border-white/60 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setSoloJornadaMarcada(true)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      soloJornadaMarcada
+                        ? "bg-stone-900 text-white shadow-xs"
+                        : "text-stone-500 hover:text-stone-900"
+                    }`}
+                  >
+                    Solo Jornada {numeroJornada} ({notificaciones.filter((n) => Number(n.jornadaNumero) === Number(numeroJornada)).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSoloJornadaMarcada(false)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      !soloJornadaMarcada
+                        ? "bg-stone-900 text-white shadow-xs"
+                        : "text-stone-500 hover:text-stone-900"
+                    }`}
+                  >
+                    Todas ({notificaciones.length})
+                  </button>
+                </div>
+
+                {/* Botón de borrado masivo de apuestas de la jornada */}
+                {onBorrarTodasNotificaciones && notificacionesFiltradas.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = soloJornadaMarcada
+                        ? `¿Eliminar todas las ${notificacionesFiltradas.length} apuestas recibidas de la Jornada ${numeroJornada}?`
+                        : `¿Eliminar todas las ${notificaciones.length} apuestas recibidas de todas las jornadas?`;
+                      if (window.confirm(msg)) {
+                        onBorrarTodasNotificaciones(soloJornadaMarcada ? numeroJornada : null);
+                      }
+                    }}
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-rose-700 bg-rose-500/10 border border-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                    title={soloJornadaMarcada ? `Borrar apuestas de la Jornada ${numeroJornada}` : "Borrar todas las apuestas"}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>{soloJornadaMarcada ? `Limpiar J${numeroJornada}` : "Limpiar todas"}</span>
+                  </button>
+                )}
+
+                {noLeidasFiltradas > 0 && onMarcarTodasNotificacionesLeidas && (
+                  <button
+                    type="button"
+                    id="btn-marcar-todas-leidas-admin"
+                    onClick={onMarcarTodasNotificacionesLeidas}
+                    className="px-5 py-2 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider hover-negro-brillante shadow-[0_6px_20px_rgba(40,36,32,0.15)] transition-all cursor-pointer"
+                  >
+                    Marcar leídas
+                  </button>
+                )}
+
+                {onActualizarNotificaciones && (
+                  <button
+                    type="button"
+                    onClick={onActualizarNotificaciones}
+                    className="px-4 py-2 rounded-full bg-white/30 border border-white/50 text-stone-700 text-xs font-semibold uppercase tracking-wider hover-negro-brillante transition-all cursor-pointer"
+                  >
+                    Refrescar
+                  </button>
+                )}
+              </div>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-stone-800">
-              Apuestas Recibidas
-            </h3>
-            <p className="text-sm font-medium text-stone-500 tracking-tight mt-1">
-              Registro inmediato de las apuestas que hace cada miembro al sellar su apuesta.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {notificacionesNoLeidas > 0 && onMarcarTodasNotificacionesLeidas && (
-              <button
-                type="button"
-                id="btn-marcar-todas-leidas-admin"
-                onClick={onMarcarTodasNotificacionesLeidas}
-                className="px-6 py-3 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider hover-negro-brillante shadow-[0_6px_20px_rgba(40,36,32,0.15)] transition-all cursor-pointer"
-              >
-                Marcar todas como revisadas
-              </button>
-            )}
+            {/* Lista de Notificaciones con desglose de la apuesta que hizo cada uno */}
+            <div className="space-y-4 pt-2">
+              {notificacionesFiltradas.length === 0 ? (
+                <div className="py-12 px-6 text-center bg-white/20 rounded-2xl border border-white/40">
+                  <p className="text-sm font-semibold text-stone-600">
+                    No hay apuestas registradas {soloJornadaMarcada ? `para la Jornada ${numeroJornada}` : "en la peña"}.
+                  </p>
+                  <p className="text-xs text-stone-400 mt-1 max-w-md mx-auto">
+                    {soloJornadaMarcada
+                      ? `En cuanto los miembros rellenen su apuesta de la Jornada ${numeroJornada}, aparecerán aquí. (Puedes pulsar "Todas" arriba para ver apuestas anteriores).`
+                      : "En cuanto cualquiera de los miembros rellene su apuesta y guarde, su jugada aparecerá aquí al instante para Jorge."}
+                  </p>
+                </div>
+              ) : (
+                notificacionesFiltradas.map((notif) => {
+                  const estaExpandida = notifSeleccionadaId === notif.id;
+                  const pronosticosObj = notif.pronosticos || {};
+                  const fechaStr = new Date(notif.fecha_creacion).toLocaleString("es-ES", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
 
-            {onActualizarNotificaciones && (
-              <button
-                type="button"
-                onClick={onActualizarNotificaciones}
-                className="px-5 py-3 rounded-full bg-white/30 border border-white/50 text-stone-700 text-xs font-semibold uppercase tracking-wider hover-negro-brillante transition-all cursor-pointer"
-              >
-                Refrescar
-              </button>
-            )}
-          </div>
-        </div>
+                  return (
+                    <div
+                      key={notif.id}
+                      className={`rounded-3xl border transition-all duration-300 p-6 ${
+                        !notif.leida
+                          ? "bg-white/85 border-red-300 shadow-[0_6px_25px_rgba(239,68,68,0.12)]"
+                          : "bg-white/35 border-white/60 hover:bg-white/50"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div
+                            className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                              !notif.leida ? "bg-red-500 badge-notif-pulse" : "bg-stone-300"
+                            }`}
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-lg font-extrabold text-stone-900 tracking-tight">
+                                {notif.usuarioNombre}
+                              </h4>
+                              <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/70 text-stone-600 font-bold border border-stone-200">
+                                Jornada {notif.jornadaNumero}
+                              </span>
+                              {!notif.leida && (
+                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 uppercase tracking-wide">
+                                  Nueva
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-stone-500 font-medium mt-0.5">
+                              {notif.resumen || "Apuesta sellada"} · <span className="font-mono">{fechaStr}</span>
+                            </p>
+                          </div>
+                        </div>
 
-        {/* Lista de Notificaciones con desglose de la apuesta que hizo cada uno */}
-        <div className="space-y-4 pt-2">
-          {notificaciones.length === 0 ? (
-            <div className="py-12 px-6 text-center bg-white/20 rounded-2xl border border-white/40">
-              <p className="text-sm font-medium text-stone-400">
-                Aún no hay apuestas registradas por los miembros.
-              </p>
-              <p className="text-xs text-stone-400/80 mt-1">
-                En cuanto cualquiera de los 8 rellene su apuesta y guarde, su jugada aparecerá aquí al instante para Jorge.
-              </p>
-            </div>
-          ) : (
-            notificaciones.map((notif) => {
-              const estaExpandida = notifSeleccionadaId === notif.id;
-              const pronosticosObj = notif.pronosticos || {};
-              const fechaStr = new Date(notif.fecha_creacion).toLocaleString("es-ES", {
-                day: "2-digit",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          {!notif.leida && onMarcarNotificacionLeida && (
+                            <button
+                              type="button"
+                              onClick={() => onMarcarNotificacionLeida(notif.id)}
+                              className="px-3 py-1.5 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/60 border border-white/70 hover:bg-white transition-all cursor-pointer hover-negro-brillante"
+                            >
+                              Marcar revisada
+                            </button>
+                          )}
 
-              return (
-                <div
-                  key={notif.id}
-                  className={`rounded-3xl border transition-all duration-300 p-6 ${
-                    !notif.leida
-                      ? "bg-white/85 border-red-300 shadow-[0_6px_25px_rgba(239,68,68,0.12)]"
-                      : "bg-white/35 border-white/60 hover:bg-white/50"
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className={`w-3.5 h-3.5 rounded-full shrink-0 ${
-                          !notif.leida ? "bg-red-500 badge-notif-pulse" : "bg-stone-300"
-                        }`}
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-lg font-extrabold text-stone-900 tracking-tight">
-                            {notif.usuarioNombre}
-                          </h4>
-                          <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/70 text-stone-600 font-bold border border-stone-200">
-                            Jornada {notif.jornadaNumero}
-                          </span>
-                          {!notif.leida && (
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 uppercase tracking-wide">
-                              Nueva
-                            </span>
+                          <button
+                            type="button"
+                            onClick={() => setNotifSeleccionadaId(estaExpandida ? null : notif.id)}
+                            className="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-stone-800 bg-white/50 border border-white/60 hover-negro-brillante transition-all cursor-pointer"
+                          >
+                            {estaExpandida ? "Ocultar Apuesta" : "Ver Apuesta"}
+                          </button>
+
+                          {/* Cruz X para borrar individualmente esta apuesta */}
+                          {onBorrarNotificacion && (
+                            <button
+                              type="button"
+                              id={`btn-borrar-notif-${notif.id}`}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `¿Eliminar la notificación de apuesta de ${notif.usuarioNombre} (Jornada ${notif.jornadaNumero})?`
+                                  )
+                                ) {
+                                  onBorrarNotificacion(notif.id);
+                                }
+                              }}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-rose-600 bg-white/60 hover:bg-rose-50 border border-stone-200/80 hover:border-rose-300 transition-all cursor-pointer shrink-0"
+                              title="Eliminar esta apuesta (descartar)"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
                           )}
                         </div>
-                        <p className="text-xs text-stone-500 font-medium mt-0.5">
-                          {notif.resumen || "Apuesta sellada"} · <span className="font-mono">{fechaStr}</span>
-                        </p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      {!notif.leida && onMarcarNotificacionLeida && (
-                        <button
-                          type="button"
-                          onClick={() => onMarcarNotificacionLeida(notif.id)}
-                          className="px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/60 border border-white/70 hover:bg-white transition-all cursor-pointer hover-negro-brillante"
-                        >
-                          Marcar revisada
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setNotifSeleccionadaId(estaExpandida ? null : notif.id)}
-                        className="px-5 py-2 rounded-full text-xs font-semibold uppercase tracking-wider text-stone-800 bg-white/50 border border-white/60 hover-negro-brillante transition-all cursor-pointer"
-                      >
-                        {estaExpandida ? "Ocultar Apuesta" : "Ver Apuesta Detallada"}
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Detalle visual de los 6 Partidos de la Apuesta */}
                   {estaExpandida && (
@@ -661,11 +744,14 @@ export default function AdminView({
                               key={key}
                               className="p-3.5 rounded-2xl bg-white/70 border border-white/80 shadow-xs flex items-center justify-between gap-2"
                             >
-                              <div className="min-w-0 pr-1">
+                              <div className="min-w-0 pr-1 flex-1">
                                 <span className="text-[10px] font-mono font-bold text-stone-400 block uppercase">
                                   Partido 0{num}
                                 </span>
-                                <p className="text-xs font-bold text-stone-800 truncate mt-0.5">
+                                <p
+                                  className="text-xs font-bold text-stone-800 break-words leading-tight mt-0.5"
+                                  title={`${homeName} vs ${awayName}`}
+                                >
                                   {homeName} <span className="text-stone-400 font-normal">vs</span> {awayName}
                                 </p>
                               </div>
