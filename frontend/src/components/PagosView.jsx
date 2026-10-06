@@ -25,7 +25,8 @@ export default function PagosView({ usuarioActivo, onActualizarUsuarios }) {
       const res = await fetch(`${API_URL}/api/pagos`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudieron cargar los pagos.");
-      setMeses(data.meses || []);
+      const mesesOrdenados = (data.meses || []).sort((a, b) => a.id - b.id);
+      setMeses(mesesOrdenados);
       setError(null);
     } catch (err) {
       console.error("Error al cargar pagos:", err);
@@ -106,7 +107,7 @@ export default function PagosView({ usuarioActivo, onActualizarUsuarios }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo crear el mes.");
 
-      setMeses((prev) => [data.mes, ...prev]);
+      setMeses((prev) => [...prev, data.mes]);
       setNombreNuevoMes("");
       setCuotaNuevoMes("10");
       setMostrarCrearMes(false);

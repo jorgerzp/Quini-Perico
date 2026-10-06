@@ -1267,7 +1267,7 @@ app.get("/api/pagos", async (_req, res) => {
           orderBy: { usuarioId: "asc" },
         },
       },
-      orderBy: { id: "desc" },
+      orderBy: { id: "asc" },
     });
 
     // Si no hay meses creados todavía, creamos "Pago Octubre 2026"
@@ -1297,7 +1297,7 @@ app.get("/api/pagos", async (_req, res) => {
             orderBy: { usuarioId: "asc" },
           },
         },
-        orderBy: { id: "desc" },
+        orderBy: { id: "asc" },
       });
     } else {
       // Asegurar que todos los usuarios actuales existan en cada mes
@@ -1324,7 +1324,7 @@ app.get("/api/pagos", async (_req, res) => {
             orderBy: { usuarioId: "asc" },
           },
         },
-        orderBy: { id: "desc" },
+        orderBy: { id: "asc" },
       });
     }
 
