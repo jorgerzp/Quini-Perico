@@ -217,14 +217,15 @@ export default function App() {
   }, [seccionActiva, cargarPartidos, cargarUsuarios]);
 
 
-  // Polling cada 6s para partidos y notificaciones
+  // Polling cada 6s para partidos, usuarios y notificaciones
   useEffect(() => {
     const interval = setInterval(() => {
       cargarPartidos();
       cargarNotificaciones();
+      cargarUsuarios();
     }, 6000);
     return () => clearInterval(interval);
-  }, [cargarPartidos, cargarNotificaciones]);
+  }, [cargarPartidos, cargarNotificaciones, cargarUsuarios]);
 
   // Manejo de Login y Logout
   const handleLoginSuccess = (usuario) => {
@@ -344,6 +345,7 @@ export default function App() {
             partidos={partidos}
             numeroJornada={numeroJornada}
             onIrAdmin={() => setSeccionActiva("admin")}
+            onIrResultados={() => setSeccionActiva("resultados")}
             onJugadaConfirmada={() => {
               cargarUsuarios();
               cargarClasificacion();
@@ -366,8 +368,10 @@ export default function App() {
         {seccionActiva === "resultados" && (
           <ResultadosView
             usuarioActivo={usuarioActivo}
+            usuarios={usuarios}
             partidos={partidos}
             numeroJornada={numeroJornada}
+            onRefrescarUsuarios={cargarUsuarios}
             onResultadosGuardados={() => {
               cargarClasificacion();
               cargarUsuarios();

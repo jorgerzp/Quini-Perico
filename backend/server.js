@@ -100,7 +100,46 @@ async function seedDatabase() {
 
 seedDatabase();
 
-// Función auxiliar para verificar si un usuario está al corriente de las cuotas de meses activos
+// Diccionario de nombres de meses en español para resolución de mes en curso
+const NOMBRES_MESES_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+];
+
+// Función para identificar exclusivamente el mes activo correspondiente al mes actual en curso
+function obtenerMesActualDePagos(mesesActivos) {
+  if (!mesesActivos || mesesActivos.length === 0) return null;
+
+  const now = new Date();
+  const nombreMesActual = NOMBRES_MESES_ES[now.getMonth()]; // ej: "octubre"
+  const anioActual = String(now.getFullYear()); // ej: "2026"
+
+  const normalize = (str) =>
+    (str || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  // 1. Prioridad: mes activo que contenga el nombre del mes actual Y el año actual
+  const coincideMesYAnio = mesesActivos.find((m) => {
+    const txt = normalize(m.mes);
+    return txt.includes(nombreMesActual) && txt.includes(anioActual);
+  });
+  if (coincideMesYAnio) return coincideMesYAnio;
+
+  // 2. Prioridad: mes activo que contenga el nombre del mes actual
+  const coincideMes = mesesActivos.find((m) => {
+    const txt = normalize(m.mes);
+    return txt.includes(nombreMesActual);
+  });
+  if (coincideMes) return coincideMes;
+
+  // 3. Fallback: el primer mes activo ordenado por id
+  return mesesActivos[0];
+}
+
+// Función auxiliar para verificar si un usuario está al corriente de la cuota del mes actual
 async function getEstadoPagosUsuario(usuarioId, esSuperadmin = false) {
   if (esSuperadmin) {
     return {
@@ -124,18 +163,24 @@ async function getEstadoPagosUsuario(usuarioId, esSuperadmin = false) {
     };
   }
 
-  const pendientes = [];
-  for (const m of mesesActivos) {
-    const pago = m.pagosUsuarios.find((pu) => pu.usuarioId === usuarioId);
-    if (!pago || !pago.pagado) {
-      pendientes.push(m.mes);
-    }
+  // Filtrar exclusivamente para comprobar el mes actual
+  const mesActual = obtenerMesActualDePagos(mesesActivos);
+  if (!mesActual) {
+    return {
+      haPagadoMes: true,
+      mesesPendientes: [],
+      mesPendienteTexto: "",
+    };
   }
 
+  const pago = mesActual.pagosUsuarios.find((pu) => pu.usuarioId === usuarioId);
+  const pagado = Boolean(pago && pago.pagado);
+  const pendientes = pagado ? [] : [mesActual.mes];
+
   return {
-    haPagadoMes: pendientes.length === 0,
+    haPagadoMes: pagado,
     mesesPendientes: pendientes,
-    mesPendienteTexto: pendientes.join(", "),
+    mesPendienteTexto: pendientes.length > 0 ? pendientes[0] : "",
   };
 }
 
@@ -258,12 +303,14 @@ app.get("/api/usuarios", async (_req, res) => {
       });
     }
 
-    // Obtener meses activos para evaluar el estado de pago de cada miembro
+    // Obtener meses activos para evaluar el estado de pago del mes actual de cada miembro
     const mesesActivos = await prisma.pagoMes.findMany({
       where: { activo: true },
       include: { pagosUsuarios: true },
       orderBy: { id: "asc" },
     });
+
+    const mesActual = obtenerMesActualDePagos(mesesActivos);
 
     const usuariosConEstado = usuarios.map((u) => {
       const jugada = jugadasJornada.find((j) => j.usuarioId === u.id);
@@ -272,14 +319,13 @@ app.get("/api/usuarios", async (_req, res) => {
       let haPagadoMes = true;
       let pendientes = [];
 
-      if (!esSuperadmin && mesesActivos.length > 0) {
-        for (const m of mesesActivos) {
-          const pago = m.pagosUsuarios.find((pu) => pu.usuarioId === u.id);
-          if (!pago || !pago.pagado) {
-            pendientes.push(m.mes);
-          }
+      if (!esSuperadmin && mesActual) {
+        const pago = mesActual.pagosUsuarios.find((pu) => pu.usuarioId === u.id);
+        const pagado = Boolean(pago && pago.pagado);
+        haPagadoMes = pagado;
+        if (!pagado) {
+          pendientes = [mesActual.mes];
         }
-        haPagadoMes = pendientes.length === 0;
       }
 
       return {
@@ -290,7 +336,7 @@ app.get("/api/usuarios", async (_req, res) => {
         jornadaActualNumero: jornadaActiva?.numero || null,
         haPagadoMes,
         mesesPendientes: pendientes,
-        mesPendienteTexto: pendientes.join(", "),
+        mesPendienteTexto: pendientes.length > 0 ? pendientes[0] : "",
       };
     });
 
@@ -1041,7 +1087,7 @@ app.get("/api/resultados", async (_req, res) => {
     }
 
     let jugadasDeTodos = [];
-    if (jornada && jornada.apuestasAceptadas) {
+    if (jornada) {
       const jugadas = await prisma.jugada.findMany({
         where: { jornadaId: jornada.id },
         include: { usuario: true },
@@ -1058,8 +1104,10 @@ app.get("/api/resultados", async (_req, res) => {
           id: j.id,
           usuarioId: j.usuarioId,
           usuarioNombre: j.usuario?.nombre || "Miembro",
+          avatarColor: j.usuario?.avatarColor || "blue",
           pronosticos: datos,
           puntosObtenidos: j.puntosObtenidos,
+          fecha_creacion: j.fecha_creacion,
         };
       });
     }
@@ -1079,6 +1127,22 @@ app.get("/api/resultados", async (_req, res) => {
 });
 
 // Reiniciar / Limpiar resultados de la jornada (Superadmin)
+app.post("/api/resultados/reset", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({ where: { activa: true } });
+    if (jornada) {
+      await prisma.jornada.update({
+        where: { id: jornada.id },
+        data: { resultados: null },
+      });
+    }
+    res.json({ message: "Resultados oficiales reiniciados. Estado: aún no disponible." });
+  } catch (error) {
+    console.error("Error al reiniciar resultados:", error);
+    res.status(500).json({ error: "Error al reiniciar resultados oficiales." });
+  }
+});
+
 app.delete("/api/resultados", async (_req, res) => {
   try {
     const jornada = await prisma.jornada.findFirst({ where: { activa: true } });

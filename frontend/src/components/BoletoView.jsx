@@ -21,6 +21,7 @@ export default function BoletoView({
   partidos = null,
   numeroJornada = 7,
   onIrAdmin,
+  onIrResultados,
 }) {
   const [predictions, setPredictions] = useState(emptyPredictions);
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +61,10 @@ export default function BoletoView({
       : (usuarioActivo?.haPagadoMes !== undefined ? usuarioActivo.haPagadoMes : true)
   );
   const tienePagoPendiente = !isJorge && !isDemo && !haPagadoMes;
-  const mesPendienteTexto = userEnLista?.mesPendienteTexto || usuarioActivo?.mesPendienteTexto || "el mes en curso";
+  const mesPendienteTextoRaw = userEnLista?.mesPendienteTexto || usuarioActivo?.mesPendienteTexto || "el mes en curso";
+  const mesPendienteTexto = mesPendienteTextoRaw.includes(",")
+    ? mesPendienteTextoRaw.split(",")[0].trim()
+    : mesPendienteTextoRaw;
 
 
   useEffect(() => {
@@ -195,10 +199,22 @@ export default function BoletoView({
             </p>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col items-center gap-3">
             <p className="text-xs text-stone-500 font-medium bg-white/40 border border-white/60 rounded-2xl py-3 px-5 inline-block">
-              En cuanto Jorge acepte todas las apuestas, podrás consultar los resultados de todos los participantes en la sección <strong>Resultados</strong>.
+              Ya puedes consultar en vivo las apuestas enviadas por los demás miembros en la sección <strong>Resultados</strong>.
             </p>
+            {onIrResultados && (
+              <button
+                type="button"
+                onClick={onIrResultados}
+                className="mt-2 bg-stone-800 text-white text-sm font-semibold tracking-tight rounded-full py-3.5 px-8 shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer flex items-center gap-2 hover-negro-brillante"
+              >
+                <span>Ver Apuestas de la Peña en Resultados</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            )}
           </div>
         </section>
       </div>
