@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const AVATAR_BG = {
   blue: "bg-blue-600 text-white",
@@ -15,7 +15,7 @@ const AVATAR_BG = {
 /**
  * Obtiene la ruta del logo / imagen de perfil correspondiente al usuario.
  */
-export function getAvatarPath(nombre) {
+export function getAvatarPath(nombre, timestamp = null) {
   if (!nombre) return null;
   const clean = String(nombre).trim();
   const lower = clean
@@ -34,15 +34,22 @@ export function getAvatarPath(nombre) {
     jorge: "/imagenes/logo-Jorge.jpg",
   };
 
-  if (mapaLogos[lower]) return mapaLogos[lower];
+  let basePath = mapaLogos[lower];
 
-  for (const [clave, ruta] of Object.entries(mapaLogos)) {
-    if (lower.startsWith(clave) || lower.includes(clave)) {
-      return ruta;
+  if (!basePath) {
+    for (const [clave, ruta] of Object.entries(mapaLogos)) {
+      if (lower.startsWith(clave) || lower.includes(clave)) {
+        basePath = ruta;
+        break;
+      }
     }
   }
 
-  return `/imagenes/logo-${clean}.jpg`;
+  if (!basePath) {
+    basePath = `/imagenes/logo-${clean}.jpg`;
+  }
+
+  return timestamp ? `${basePath}?t=${timestamp}` : basePath;
 }
 
 /**
@@ -57,9 +64,33 @@ export default function UserAvatar({
   imgClassName = "w-full h-full object-cover",
   fallbackClassName = "text-xs font-black",
   title = null,
+  timestamp = null,
 }) {
+  const [version, setVersion] = useState(() => timestamp || null);
   const [errorCarga, setErrorCarga] = useState(false);
-  const src = getAvatarPath(nombre);
+
+  useEffect(() => {
+    const handleAvatarActualizado = (e) => {
+      const updatedNombre = e.detail?.nombre;
+      const cleanNombre = String(nombre).trim().toLowerCase();
+      const updatedClean = String(updatedNombre || "").trim().toLowerCase();
+
+      if (!updatedNombre || cleanNombre.includes(updatedClean) || updatedClean.includes(cleanNombre)) {
+        setErrorCarga(false);
+        setVersion(e.detail?.timestamp || Date.now());
+      }
+    };
+
+    window.addEventListener("avatar-actualizado", handleAvatarActualizado);
+    return () => window.removeEventListener("avatar-actualizado", handleAvatarActualizado);
+  }, [nombre]);
+
+  useEffect(() => {
+    setErrorCarga(false);
+    if (timestamp) setVersion(timestamp);
+  }, [nombre, timestamp]);
+
+  const src = getAvatarPath(nombre, version);
   const bgClass = AVATAR_BG[avatarColor] || AVATAR_BG.default;
   const inicial = (nombre || "?").charAt(0).toUpperCase();
 
@@ -74,6 +105,7 @@ export default function UserAvatar({
     >
       {src && !errorCarga ? (
         <img
+          key={src}
           src={src}
           alt={nombre}
           className={`${imgClassName} transition-transform duration-200`}

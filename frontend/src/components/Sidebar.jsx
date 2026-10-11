@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import UserAvatar from "./UserAvatar";
+import CambiarAvatarModal from "./CambiarAvatarModal";
 
 export default function Sidebar({
   seccionActiva,
   setSeccionActiva,
   usuarioActivo,
+  usuarios = [],
   boteTotal,
   numeroJornada = 7,
   notificacionesNoLeidas = 0,
@@ -13,6 +15,7 @@ export default function Sidebar({
   onLogout,
 }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
+  const [modalAvatarAbierto, setModalAvatarAbierto] = useState(false);
 
   const esSuperAdmin =
     usuarioActivo?.rol === "superadmin" || usuarioActivo?.nombre === "Jorge";
@@ -103,19 +106,41 @@ export default function Sidebar({
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 relative">
           <div className="hidden md:flex items-center gap-3">
-            <UserAvatar
-              nombre={usuarioActivo?.nombre}
-              className="w-9 h-9 rounded-full ring-2 ring-white/60 shadow-xs"
-              imgClassName="w-full h-full object-cover rounded-full"
-              fallbackClassName="text-xs font-black"
-            />
+            <button
+              type="button"
+              onClick={() => setModalAvatarAbierto(true)}
+              title="Haz clic para cambiar tu foto de perfil"
+              className="relative group cursor-pointer focus:outline-none"
+            >
+              <UserAvatar
+                nombre={usuarioActivo?.nombre}
+                className="w-9 h-9 rounded-full ring-2 ring-white/60 shadow-xs group-hover:ring-stone-900 transition-all"
+                imgClassName="w-full h-full object-cover rounded-full group-hover:opacity-80 transition-opacity"
+                fallbackClassName="text-xs font-black"
+              />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-stone-900 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs">
+                📸
+              </span>
+            </button>
             <div className="text-right">
               <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
                 {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
               </span>
-              <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
-                {esDemo ? "Usuario Demo" : nombreFormateado}
-              </p>
+              <div className="flex items-center gap-1.5 justify-end">
+                <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
+                  {esDemo ? "Usuario Demo" : nombreFormateado}
+                </p>
+                {!esDemo && (
+                  <button
+                    type="button"
+                    onClick={() => setModalAvatarAbierto(true)}
+                    title="Cambiar foto de perfil"
+                    className="text-[10px] text-stone-400 hover:text-stone-800 underline font-medium cursor-pointer"
+                  >
+                    Foto
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -150,24 +175,51 @@ export default function Sidebar({
           menuMovilAbierto ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="mb-6 pb-4 border-b border-white/60 flex items-center gap-3.5">
-          <UserAvatar
-            nombre={usuarioActivo?.nombre}
-            className="w-12 h-12 rounded-2xl ring-2 ring-white/60 shadow-xs"
-            imgClassName="w-full h-full object-cover rounded-2xl"
-            fallbackClassName="text-base font-black"
-          />
-          <div>
-            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
-              {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
-            </span>
-            <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-0.5">
-              {esDemo ? "Usuario Demo" : nombreFormateado}
-            </p>
-            <p className="text-xs text-stone-400 font-medium mt-0.5">
-              {esDemo ? "Acceso de invitado (solo lectura)" : `${usuarioActivo?.aciertos ?? 0} aciertos acumulados`}
-            </p>
+        <div className="mb-6 pb-4 border-b border-white/60 flex items-center justify-between gap-3.5">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuMovilAbierto(false);
+                setModalAvatarAbierto(true);
+              }}
+              title="Cambiar foto de perfil"
+              className="relative group shrink-0 cursor-pointer"
+            >
+              <UserAvatar
+                nombre={usuarioActivo?.nombre}
+                className="w-12 h-12 rounded-2xl ring-2 ring-white/60 shadow-xs"
+                imgClassName="w-full h-full object-cover rounded-2xl"
+                fallbackClassName="text-base font-black"
+              />
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-stone-900 text-white text-[10px] flex items-center justify-center shadow-xs">
+                📸
+              </span>
+            </button>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block truncate">
+                {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+              </span>
+              <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-0.5 truncate">
+                {esDemo ? "Usuario Demo" : nombreFormateado}
+              </p>
+              <p className="text-xs text-stone-400 font-medium mt-0.5">
+                {esDemo ? "Acceso de invitado (solo lectura)" : `${usuarioActivo?.aciertos ?? 0} aciertos acumulados`}
+              </p>
+            </div>
           </div>
+          {!esDemo && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuMovilAbierto(false);
+                setModalAvatarAbierto(true);
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/60 border border-white/80 text-stone-800 hover:bg-white shadow-2xs cursor-pointer"
+            >
+              Cambiar foto
+            </button>
+          )}
         </div>
 
         <nav className="space-y-1">
@@ -218,6 +270,14 @@ export default function Sidebar({
           </button>
         </div>
       </div>
+
+      {/* Modal para cambiar foto de perfil y sobreescribir archivo */}
+      <CambiarAvatarModal
+        abierto={modalAvatarAbierto}
+        onCerrar={() => setModalAvatarAbierto(false)}
+        usuarioActivo={usuarioActivo}
+        todosLosUsuarios={usuarios}
+      />
     </>
   );
 }

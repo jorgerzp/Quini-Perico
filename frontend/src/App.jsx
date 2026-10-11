@@ -325,6 +325,7 @@ export default function App() {
             seccionActiva={seccionActiva}
             setSeccionActiva={setSeccionActiva}
             usuarioActivo={usuarioActivo}
+            usuarios={usuarios}
             boteTotal={bote?.acumulado || 0}
             numeroJornada={numeroJornada}
             notificacionesNoLeidas={notificacionesNoLeidas}

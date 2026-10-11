@@ -12,6 +12,7 @@ try {
 }
 
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -292,6 +293,93 @@ app.post("/api/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Error de autenticación en el servidor." });
+  }
+});
+
+// --- ENDPOINT CAMBIO DE FOTO / LOGO DE PERFIL ---
+// Sobreescribe el archivo existente del usuario para que el almacenamiento nunca crezca.
+app.post("/api/usuario/avatar", async (req, res) => {
+  try {
+    const { nombre, imagenBase64 } = req.body;
+
+    if (!nombre || !imagenBase64) {
+      return res.status(400).json({ error: "Nombre de usuario e imagen requeridos." });
+    }
+
+    const clean = String(nombre).trim();
+    const lower = clean
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    if (lower === "demo") {
+      return res.status(403).json({ error: "El usuario demo no puede modificar fotos de perfil." });
+    }
+
+    // Extraer base64 crudo
+    const matches = String(imagenBase64).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const base64Data = matches ? matches[2] : imagenBase64;
+    const buffer = Buffer.from(base64Data, "base64");
+
+    if (!buffer || buffer.length === 0) {
+      return res.status(400).json({ error: "El archivo de imagen no es válido." });
+    }
+
+    // Mapeo canónico a los nombres fijos para SOBREESCRIBIR siempre el mismo archivo
+    const mapaArchivos = {
+      acuna: ["logo-Acuna.jpg", "logo-Acuña.jpg"],
+      ale: ["logo-Ale.jpg"],
+      andres: ["logo-Andres.jpg", "logo-Andrés.jpg"],
+      miguel: ["logo-Miguel.jpg"],
+      mora: ["logo-Mora.jpg"],
+      rafa: ["logo-Rafa.jpg"],
+      vergara: ["logo-Vergara.jpg"],
+      jorge: ["logo-Jorge.jpg"],
+    };
+
+    let listaArchivos = mapaArchivos[lower];
+    if (!listaArchivos) {
+      for (const [clave, archivos] of Object.entries(mapaArchivos)) {
+        if (lower.startsWith(clave) || lower.includes(clave)) {
+          listaArchivos = archivos;
+          break;
+        }
+      }
+    }
+
+    if (!listaArchivos) {
+      listaArchivos = [`logo-${clean}.jpg`];
+    }
+
+    // Guardar en las dos carpetas activas sobreescribiendo el archivo existente
+    const directoriosDestino = [
+      path.join(__dirname, "../imagenes"),
+      path.join(__dirname, "../frontend/public/imagenes"),
+    ];
+
+    for (const dir of directoriosDestino) {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      for (const archivo of listaArchivos) {
+        const rutaFinal = path.join(dir, archivo);
+        fs.writeFileSync(rutaFinal, buffer);
+      }
+    }
+
+    console.log(`[Avatar] Foto de '${clean}' actualizada y sobreescrita en: ${listaArchivos.join(", ")}`);
+
+    const timestamp = Date.now();
+    return res.json({
+      ok: true,
+      mensaje: `Foto de perfil de ${clean} actualizada correctamente.`,
+      archivos: listaArchivos,
+      timestamp,
+    });
+  } catch (error) {
+    console.error("Error al guardar avatar:", error);
+    return res.status(500).json({ error: "Error en el servidor al guardar la foto de perfil." });
   }
 });
 
