@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import { obtenerEstadisticasPartido } from "./services/apiSportsService.js";
 
 try {
   if (process.loadEnvFile) {
@@ -494,17 +495,74 @@ app.post("/api/bote/reset", async (_req, res) => {
 });
 
 
+// Función auxiliar para determinar si un partido cuenta con resultado oficial cerrado y válido
+function esPartidoFinalizado(val) {
+  if (!val || typeof val !== "object") return false;
+  const l = val.local;
+  const v = val.visitante;
+  const esValido = (x) => x !== null && x !== undefined && String(x).trim() !== "" && String(x).trim() !== "-";
+  return esValido(l) && esValido(v);
+}
+
+// Función auxiliar para recalcular de manera exacta e idempotente los puntos y aciertos de todos los usuarios
+async function recalcularPuntuacionesUsuarios() {
+  const usuarios = await prisma.usuario.findMany({ select: { id: true } });
+  for (const u of usuarios) {
+    const totalAciertos = await prisma.jugada.aggregate({
+      where: { usuarioId: u.id },
+      _sum: { puntosObtenidos: true },
+    });
+    const total = totalAciertos._sum.puntosObtenidos || 0;
+    await prisma.usuario.update({
+      where: { id: u.id },
+      data: {
+        puntos: total,
+        aciertos: total,
+      },
+    });
+  }
+}
+
 // --- ENDPOINTS CLASIFICACIÓN (Ordenado por Aciertos Totales) ---
 app.get("/api/clasificacion", async (_req, res) => {
   try {
+    const jornadaActiva = await prisma.jornada.findFirst({ where: { activa: true } });
+
+    let jugadasJornadaActiva = [];
+    let partidosFinalizados = 0;
+    if (jornadaActiva) {
+      jugadasJornadaActiva = await prisma.jugada.findMany({
+        where: { jornadaId: jornadaActiva.id },
+      });
+      if (jornadaActiva.resultados) {
+        try {
+          const resObj = JSON.parse(jornadaActiva.resultados);
+          if (resObj && typeof resObj === "object") {
+            for (let i = 1; i <= 6; i++) {
+              if (esPartidoFinalizado(resObj[`partido${i}`])) {
+                partidosFinalizados++;
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
     const usuarios = await prisma.usuario.findMany({
       orderBy: [{ aciertos: "desc" }, { puntos: "desc" }, { nombre: "asc" }],
     });
 
-    const ranking = usuarios.map((u, index) => ({
-      posicion: index + 1,
-      ...u,
-    }));
+    const ranking = usuarios.map((u, index) => {
+      const jugadaAct = jugadasJornadaActiva.find((j) => j.usuarioId === u.id);
+      return {
+        posicion: index + 1,
+        ...u,
+        aciertosJornadaActiva: jugadaAct ? (jugadaAct.puntosObtenidos || 0) : 0,
+        haJugadoJornadaActiva: Boolean(jugadaAct),
+        partidosFinalizadosJornada: partidosFinalizados,
+        jornadaEnDirecto: partidosFinalizados > 0 && partidosFinalizados < 6,
+      };
+    });
 
     res.json(ranking);
   } catch (error) {
@@ -885,6 +943,9 @@ app.post("/api/jornada/limpiar", async (_req, res) => {
       },
     });
 
+    // 4. Recalcular puntuaciones generales
+    await recalcularPuntuacionesUsuarios();
+
     res.json({
       message: `Jornada ${jornada.numero} limpiada por completo con éxito. Ha quedado totalmente en blanco y lista para una nueva configuración.`,
       jornada: jornadaActualizada,
@@ -1069,20 +1130,25 @@ app.get("/api/resultados", async (_req, res) => {
 
     let resultados = null;
     let disponible = false;
+    let partidosFinalizados = 0;
 
     if (jornada?.resultados) {
       try {
         resultados = JSON.parse(jornada.resultados);
-        // Comprobar si hay al menos un pronóstico no nulo introducido por Jorge
-        if (
-          resultados &&
-          Object.values(resultados).some((p) => p.local !== null || p.visitante !== null)
-        ) {
-          disponible = true;
+        if (resultados && typeof resultados === "object") {
+          for (let i = 1; i <= 6; i++) {
+            if (esPartidoFinalizado(resultados[`partido${i}`])) {
+              partidosFinalizados++;
+            }
+          }
+          if (partidosFinalizados > 0) {
+            disponible = true;
+          }
         }
       } catch {
         resultados = null;
         disponible = false;
+        partidosFinalizados = 0;
       }
     }
 
@@ -1116,6 +1182,9 @@ app.get("/api/resultados", async (_req, res) => {
       jornada: jornada ? jornada.numero : 1,
       activa: jornada ? jornada.activa : true,
       disponible,
+      partidosFinalizados,
+      enDirecto: partidosFinalizados > 0 && partidosFinalizados < 6,
+      completada: partidosFinalizados === 6,
       apuestasAceptadas: Boolean(jornada && jornada.apuestasAceptadas),
       resultados,
       jugadasDeTodos,
@@ -1135,8 +1204,13 @@ app.post("/api/resultados/reset", async (_req, res) => {
         where: { id: jornada.id },
         data: { resultados: null },
       });
+      await prisma.jugada.updateMany({
+        where: { jornadaId: jornada.id },
+        data: { puntosObtenidos: 0 },
+      });
+      await recalcularPuntuacionesUsuarios();
     }
-    res.json({ message: "Resultados oficiales reiniciados. Estado: aún no disponible." });
+    res.json({ message: "Resultados oficiales reiniciados. Clasificación recalculada." });
   } catch (error) {
     console.error("Error al reiniciar resultados:", error);
     res.status(500).json({ error: "Error al reiniciar resultados oficiales." });
@@ -1151,15 +1225,20 @@ app.delete("/api/resultados", async (_req, res) => {
         where: { id: jornada.id },
         data: { resultados: null },
       });
+      await prisma.jugada.updateMany({
+        where: { jornadaId: jornada.id },
+        data: { puntosObtenidos: 0 },
+      });
+      await recalcularPuntuacionesUsuarios();
     }
-    res.json({ message: "Resultados oficiales reiniciados. Estado: aún no disponible." });
+    res.json({ message: "Resultados oficiales reiniciados. Clasificación recalculada." });
   } catch (error) {
     console.error("Error al reiniciar resultados:", error);
     res.status(500).json({ error: "Error al reiniciar resultados oficiales." });
   }
 });
 
-// Guardar resultados oficiales y calcular puntos para todos los participantes
+// Guardar resultados oficiales (en directo o finales) y actualizar puntos y clasificación en vivo
 app.post("/api/resultados", async (req, res) => {
   try {
     const { resultados } = req.body;
@@ -1173,15 +1252,36 @@ app.post("/api/resultados", async (req, res) => {
       jornada = await prisma.jornada.create({ data: { numero: 1, activa: true } });
     }
 
-    // Guardar resultados oficiales
+    // Normalizar objeto de resultados y contar partidos finalizados
+    const resultadosLimpios = {};
+    let partidosFinalizados = 0;
+
+    for (let i = 1; i <= 6; i++) {
+      const key = `partido${i}`;
+      const partidoData = resultados[key];
+      if (esPartidoFinalizado(partidoData)) {
+        resultadosLimpios[key] = {
+          local: String(partidoData.local).trim(),
+          visitante: String(partidoData.visitante).trim(),
+        };
+        partidosFinalizados++;
+      } else {
+        resultadosLimpios[key] = {
+          local: partidoData?.local !== undefined && partidoData?.local !== null ? String(partidoData.local).trim() : null,
+          visitante: partidoData?.visitante !== undefined && partidoData?.visitante !== null ? String(partidoData.visitante).trim() : null,
+        };
+      }
+    }
+
+    // Guardar resultados oficiales en la jornada
     await prisma.jornada.update({
       where: { id: jornada.id },
       data: {
-        resultados: JSON.stringify(resultados),
+        resultados: JSON.stringify(resultadosLimpios),
       },
     });
 
-    // Calcular puntos de cada jugada de la jornada
+    // Calcular puntos de cada jugada evaluando exclusivamente los partidos que ya han finalizado
     const jugadas = await prisma.jugada.findMany({
       where: { jornadaId: jornada.id },
       include: { usuario: true },
@@ -1202,36 +1302,25 @@ app.post("/api/resultados", async (req, res) => {
 
       for (let i = 1; i <= 6; i++) {
         const key = `partido${i}`;
-        const oficial = resultados[key];
+        const oficial = resultadosLimpios[key];
         const pronostico = pronosticosObj[key];
 
-        if (oficial && pronostico) {
-          // 1 punto por acierto: se otorga 1 punto al acertar el resultado exacto del partido
-          if (
-            oficial.local &&
-            oficial.local === pronostico.local &&
-            oficial.visitante &&
-            oficial.visitante === pronostico.visitante
-          ) {
+        // Solo computar acierto si este partido específico ya tiene resultado oficial cerrado
+        if (esPartidoFinalizado(oficial) && pronostico) {
+          const predLocal = pronostico.local !== null && pronostico.local !== undefined ? String(pronostico.local).trim() : null;
+          const predVis = pronostico.visitante !== null && pronostico.visitante !== undefined ? String(pronostico.visitante).trim() : null;
+
+          if (predLocal !== null && predVis !== null && oficial.local === predLocal && oficial.visitante === predVis) {
             puntosJornada += 1;
             aciertosJornada += 1;
           }
         }
       }
 
-      // Actualizar puntos de la jugada
+      // Actualizar puntos de la jugada para la jornada actual
       await prisma.jugada.update({
         where: { id: jugada.id },
         data: { puntosObtenidos: puntosJornada },
-      });
-
-      // Sumar al usuario
-      await prisma.usuario.update({
-        where: { id: jugada.usuarioId },
-        data: {
-          puntos: { increment: puntosJornada },
-          aciertos: { increment: aciertosJornada },
-        },
       });
 
       desglose.push({
@@ -1241,9 +1330,25 @@ app.post("/api/resultados", async (req, res) => {
       });
     }
 
+    // Recalcular la clasificación general para todos los participantes de forma consistente
+    await recalcularPuntuacionesUsuarios();
+
+    const enDirecto = partidosFinalizados > 0 && partidosFinalizados < 6;
+    const completada = partidosFinalizados === 6;
+
+    const message = completada
+      ? "¡Todos los marcadores oficiales (6/6) registrados y clasificación general actualizada!"
+      : partidosFinalizados > 0
+      ? `¡Resultados en directo guardados (${partidosFinalizados} de 6 partidos finalizados)! Clasificación actualizada al instante.`
+      : "Marcadores guardados en blanco.";
+
     res.json({
-      message: "¡Resultados oficiales registrados y puntuaciones calculadas con éxito!",
+      message,
+      partidosFinalizados,
+      enDirecto,
+      completada,
       desglose,
+      resultados: resultadosLimpios,
     });
   } catch (error) {
     console.error("Error al calcular resultados:", error);
@@ -1829,6 +1934,71 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto previo ni posterior, con e
   } catch (error) {
     console.error("Error al generar pronóstico con IA:", error);
     res.status(500).json({ error: "No se pudo generar el pronóstico con IA." });
+  }
+});
+
+// --- ENDPOINTS ESTADÍSTICAS REALES (API-SPORTS V3) ---
+app.get("/api/estadisticas/:equipoLocal/:equipoVisitante", async (req, res) => {
+  try {
+    const { equipoLocal, equipoVisitante } = req.params;
+    const apiKey = process.env.API_SPORTS_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "API_SPORTS_KEY no está configurada en las variables de entorno del servidor.",
+      });
+    }
+
+    if (!equipoLocal || !equipoVisitante) {
+      return res.status(400).json({
+        error: "Debes especificar tanto el equipo local como el equipo visitante.",
+      });
+    }
+
+    const data = await obtenerEstadisticasPartido(
+      decodeURIComponent(equipoLocal),
+      decodeURIComponent(equipoVisitante),
+      apiKey
+    );
+
+    res.json(data);
+  } catch (error) {
+    console.error("Error al obtener estadísticas API-Sports:", error.message);
+    const status = error.message.includes("No se pudo encontrar") ? 404 : 500;
+    res.status(status).json({
+      error: error.message || "Error al conectar con API-Sports V3.",
+    });
+  }
+});
+
+app.get("/api/estadisticas", async (req, res) => {
+  try {
+    const { local, visitante } = req.query;
+    if (!local || !visitante) {
+      return res.status(400).json({
+        error: "Parámetros requeridos: ?local=EquipoLocal&visitante=EquipoVisitante",
+      });
+    }
+
+    const apiKey = process.env.API_SPORTS_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "API_SPORTS_KEY no está configurada en el servidor.",
+      });
+    }
+
+    const data = await obtenerEstadisticasPartido(
+      String(local),
+      String(visitante),
+      apiKey
+    );
+    res.json(data);
+  } catch (error) {
+    console.error("Error al obtener estadísticas API-Sports (query):", error.message);
+    const status = error.message.includes("No se pudo encontrar") ? 404 : 500;
+    res.status(status).json({
+      error: error.message || "Error al conectar con API-Sports V3.",
+    });
   }
 });
 

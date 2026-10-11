@@ -11,13 +11,24 @@ export default function ClasificacionView({
   const segundo = clasificacion[1];
   const tercero = clasificacion[2];
 
+  const hayJornadaEnDirecto = clasificacion.some((u) => u.jornadaEnDirecto);
+  const partidosFinalizadosAct = clasificacion[0]?.partidosFinalizadosJornada || 0;
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
       <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-6 mb-4">
-          <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
-            RANKING OFICIAL DE ACIERTOS · JORNADA {numeroJornada}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase">
+              RANKING OFICIAL DE ACIERTOS · JORNADA {numeroJornada}
+            </span>
+            {hayJornadaEnDirecto && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-800 border border-emerald-400/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                En directo ({partidosFinalizadosAct}/6)
+              </span>
+            )}
+          </div>
 
           <button
             type="button"
@@ -34,6 +45,20 @@ export default function ClasificacionView({
         <p className="text-base text-stone-500 font-normal mt-3">
           Ordenada de mayor a menor según la suma de aciertos totales acumulados en la peña.
         </p>
+
+        {hayJornadaEnDirecto && (
+          <div className="mt-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-between gap-3 text-stone-800">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <p className="text-xs sm:text-sm font-medium text-emerald-950">
+                <span className="font-bold">Jornada {numeroJornada} en curso:</span> Se han completado {partidosFinalizadosAct} de 6 partidos. Las posiciones y los aciertos se actualizan en vivo según finalizan los encuentros.
+              </p>
+            </div>
+            <span className="hidden sm:inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white shadow-2xs shrink-0">
+              Directo
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -148,6 +173,11 @@ export default function ClasificacionView({
                       {esElActivo && (
                         <span className="text-[10px] font-mono font-extrabold text-stone-900 uppercase">
                           (TÚ)
+                        </span>
+                      )}
+                      {user.aciertosJornadaActiva > 0 && (
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          +{user.aciertosJornadaActiva} en vivo J{numeroJornada}
                         </span>
                       )}
                     </div>

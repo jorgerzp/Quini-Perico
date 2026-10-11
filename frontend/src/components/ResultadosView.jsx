@@ -177,12 +177,23 @@ export default function ResultadosView({
 
   // Manejo de marcadores oficiales (Jorge Superadmin)
   const seleccionarGol = (partidoKey, equipo, gol) => {
+    setResultados((prev) => {
+      const valorActual = prev[partidoKey]?.[equipo];
+      return {
+        ...prev,
+        [partidoKey]: {
+          ...prev[partidoKey],
+          [equipo]: valorActual === gol ? null : gol, // Permite desmarcar si pulsa el mismo
+        },
+      };
+    });
+    setMensaje(null);
+  };
+
+  const limpiarPartido = (partidoKey) => {
     setResultados((prev) => ({
       ...prev,
-      [partidoKey]: {
-        ...prev[partidoKey],
-        [equipo]: gol,
-      },
+      [partidoKey]: { local: null, visitante: null },
     }));
     setMensaje(null);
   };
@@ -199,12 +210,35 @@ export default function ResultadosView({
     setMensaje(null);
   };
 
-  let totalRellenados = 0;
-  Object.values(resultados).forEach((p) => {
-    if (p.local !== null) totalRellenados++;
-    if (p.visitante !== null) totalRellenados++;
-  });
-  const estaCompleto = totalRellenados === 12;
+  // Función para determinar el estado de un partido específico
+  const getEstadoPartido = useCallback(
+    (partidoKey) => {
+      const p = resultados[partidoKey];
+      const tieneLocal = p?.local !== null && p?.local !== undefined && String(p?.local).trim() !== "" && String(p?.local).trim() !== "-";
+      const tieneVis = p?.visitante !== null && p?.visitante !== undefined && String(p?.visitante).trim() !== "" && String(p?.visitante).trim() !== "-";
+      if (tieneLocal && tieneVis) return "finalizado";
+      if (tieneLocal || tieneVis) return "incompleto";
+      return "pendiente";
+    },
+    [resultados]
+  );
+
+  const partidosFinalizadosCount = useMemo(() => {
+    let count = 0;
+    for (let i = 1; i <= 6; i++) {
+      if (getEstadoPartido(`partido${i}`) === "finalizado") count++;
+    }
+    return count;
+  }, [resultados, getEstadoPartido]);
+
+  const hayPartidosIncompletos = useMemo(() => {
+    for (let i = 1; i <= 6; i++) {
+      if (getEstadoPartido(`partido${i}`) === "incompleto") return true;
+    }
+    return false;
+  }, [resultados, getEstadoPartido]);
+
+  const estaCompleto = partidosFinalizadosCount === 6;
 
   const reiniciarResultadosServidor = async () => {
     try {
@@ -220,7 +254,7 @@ export default function ResultadosView({
         });
         setDisponible(false);
         setTipoMensaje("info");
-        setMensaje("Resultados oficiales retirados de la vista pública.");
+        setMensaje("Resultados oficiales retirados y clasificación reajustada.");
         if (onResultadosGuardados) onResultadosGuardados();
         cargarResultados(true);
       }
@@ -230,9 +264,15 @@ export default function ResultadosView({
   };
 
   const guardarYCalcular = async () => {
-    if (!estaCompleto) {
+    if (hayPartidosIncompletos) {
       setTipoMensaje("error");
-      setMensaje("Debes rellenar los 12 resultados oficiales de los 6 partidos.");
+      setMensaje("Hay algún partido con marcador incompleto (falta el local o el visitante). Rellena ambos goles o deselecciónalo.");
+      return;
+    }
+
+    if (partidosFinalizadosCount === 0) {
+      setTipoMensaje("error");
+      setMensaje("Debes rellenar los goles de al menos 1 partido finalizado para guardar.");
       return;
     }
 
@@ -251,12 +291,12 @@ export default function ResultadosView({
 
       setDisponible(true);
       setTipoMensaje("success");
-      setMensaje("Resultados oficiales publicados y aciertos sumados a los participantes.");
+      setMensaje(data.message || `Marcadores guardados en directo (${partidosFinalizadosCount} de 6 finalizados). ¡Clasificación actualizada!`);
       setDesglose(data.desglose || []);
 
       confetti({
-        particleCount: 90,
-        spread: 70,
+        particleCount: partidosFinalizadosCount === 6 ? 90 : 50,
+        spread: 65,
         origin: { y: 0.6 },
       });
 
@@ -332,17 +372,22 @@ export default function ResultadosView({
           <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
             {/* Estado de Marcadores Oficiales */}
             <div className="flex items-center gap-2">
-              {disponible ? (
+              {estaCompleto ? (
                 <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  Marcadores Oficiales Publicados
+                  Jornada Finalizada (6/6 oficiales)
+                </span>
+              ) : partidosFinalizadosCount > 0 ? (
+                <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-800 border border-emerald-400/50 shadow-xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  En directo ({partidosFinalizadosCount} de 6 finalizados)
                 </span>
               ) : (
                 <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-800 border border-amber-300/40 shadow-xs flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                  Marcadores Oficiales Pendientes
+                  Marcadores Pendientes (0/6)
                 </span>
               )}
             </div>
@@ -484,19 +529,57 @@ export default function ResultadosView({
               <div className="space-y-4">
                 {partidos.map((partido, idx) => {
                   const res = resultados[partido.key] || { local: null, visitante: null };
+                  const estadoPart = getEstadoPartido(partido.key);
+                  const tieneMarcador = res.local !== null || res.visitante !== null;
 
                   return (
                     <div
                       key={partido.id || idx}
-                      className="py-5 px-6 sm:px-8 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl transition-all"
+                      className={`py-5 px-6 sm:px-8 backdrop-blur-md rounded-2xl border transition-all ${
+                        estadoPart === "finalizado"
+                          ? "bg-white/60 border-emerald-400/60 shadow-[0_4px_16px_rgba(16,185,129,0.08)]"
+                          : estadoPart === "incompleto"
+                          ? "bg-amber-500/10 border-amber-300/70"
+                          : "bg-white/40 border-white/60"
+                      }`}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
-                          PARTIDO {String(idx + 1).padStart(2, "0")}
-                        </span>
-                        <span className="text-xs font-mono font-medium text-stone-500 uppercase">
-                          MARCADOR OFICIAL
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
+                            PARTIDO {String(idx + 1).padStart(2, "0")}
+                          </span>
+                          {estadoPart === "finalizado" && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                              <span>✓</span> Finalizado ({res.local} - {res.visitante})
+                            </span>
+                          )}
+                          {estadoPart === "incompleto" && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                              Marcador incompleto
+                            </span>
+                          )}
+                          {estadoPart === "pendiente" && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider bg-white/40 text-stone-500 border border-stone-200">
+                              En juego / Pendiente
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {tieneMarcador && (
+                            <button
+                              type="button"
+                              onClick={() => limpiarPartido(partido.key)}
+                              className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 hover:text-rose-600 transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-rose-50"
+                              title="Limpiar marcador de este partido"
+                            >
+                              Limpiar
+                            </button>
+                          )}
+                          <span className="text-xs font-mono font-medium text-stone-400 uppercase">
+                            OFICIAL
+                          </span>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-center">
@@ -557,20 +640,28 @@ export default function ResultadosView({
                 <button
                   type="button"
                   id="btn-publicar-resultados-admin"
-                  disabled={guardando || !estaCompleto}
+                  disabled={guardando || partidosFinalizadosCount === 0 || hayPartidosIncompletos}
                   onClick={guardarYCalcular}
-                  className={`w-full max-w-md mx-auto py-4 px-10 rounded-full text-base font-semibold tracking-tight transition-all ${
-                    estaCompleto
+                  className={`w-full max-w-lg mx-auto py-4 px-10 rounded-full text-base font-semibold tracking-tight transition-all ${
+                    partidosFinalizadosCount > 0 && !hayPartidosIncompletos
                       ? "bg-stone-800 text-white shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 cursor-pointer"
                       : "bg-white/30 border border-white/50 text-stone-400 cursor-not-allowed"
                   }`}
                 >
-                  {guardando ? "Publicando Resultados..." : "Publicar Marcadores Oficiales"}
+                  {guardando
+                    ? "Guardando resultados..."
+                    : estaCompleto
+                    ? "Guardar y Publicar Jornada Completa (6/6)"
+                    : `Guardar Resultados en Directo (${partidosFinalizadosCount} de 6 finalizados)`}
                 </button>
-                <p className="text-xs text-stone-400 uppercase tracking-widest mt-2">
-                  {estaCompleto
-                    ? "Al publicar se computarán los aciertos de toda la peña automáticamente"
-                    : `Faltan ${12 - totalRellenados} marcadores por rellenar para poder publicar`}
+                <p className="text-xs text-stone-500 font-medium tracking-tight mt-2.5">
+                  {partidosFinalizadosCount === 0
+                    ? "Selecciona los resultados de los partidos que ya hayan finalizado para actualizar la clasificación en vivo."
+                    : hayPartidosIncompletos
+                    ? "Hay algún partido con marcador incompleto. Completa ambos goles o pulsa 'Limpiar' en ese partido para guardar."
+                    : estaCompleto
+                    ? "Los 6 partidos tienen marcador oficial. Se actualizará la clasificación general con la jornada cerrada."
+                    : `Puedes guardar ahora con ${partidosFinalizadosCount} partido(s) finalizados. Se computarán los aciertos y la clasificación se actualizará al instante para toda la peña.`}
                 </p>
               </div>
             </div>
@@ -581,40 +672,69 @@ export default function ResultadosView({
       {/* SECCIÓN RESUMEN DE MARCADORES OFICIALES (MODO LECTURA SI ESTÁN PUBLICADOS) */}
       {disponible && (
         <section className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-6 sm:px-10 sm:py-8 space-y-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <div>
               <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-1">
                 OFICIAL
               </span>
               <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-800">
-                Marcadores Finales de los Partidos
+                Marcadores Oficiales de la Jornada
               </h3>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Validados
-            </span>
+            {estaCompleto ? (
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                Jornada Completada (6/6)
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-900 border border-emerald-400/50 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                En Directo ({partidosFinalizadosCount} de 6 finalizados)
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
             {partidos.map((partido, idx) => {
               const res = resultados[partido.key] || { local: "-", visitante: "-" };
+              const finalizado = getEstadoPartido(partido.key) === "finalizado";
+
               return (
                 <div
                   key={partido.id || idx}
-                  className="p-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl flex items-center justify-between gap-3"
+                  className={`p-4 backdrop-blur-md border rounded-2xl flex items-center justify-between gap-3 transition-all ${
+                    finalizado
+                      ? "bg-white/70 border-emerald-300/80 shadow-xs"
+                      : "bg-white/30 border-white/50 opacity-70"
+                  }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-mono font-bold text-stone-400 uppercase block">
-                      P{idx + 1}
-                    </span>
-                    <p className="text-xs font-semibold text-stone-800 truncate" title={`${partido.home} vs ${partido.away}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-stone-400 uppercase block">
+                        P{idx + 1}
+                      </span>
+                      {finalizado ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Finalizado
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-500 border border-stone-200">
+                          En juego
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-stone-800 truncate mt-1" title={`${partido.home} vs ${partido.away}`}>
                       {partido.home} <span className="text-stone-400 font-normal">v</span> {partido.away}
                     </p>
                   </div>
-                  <div className="font-mono text-lg font-black text-stone-800 shrink-0 px-2 py-0.5 bg-white/70 border border-white/80 rounded-xl">
-                    <span>{res.local || "-"}</span>
-                    <span className="text-stone-300 mx-1">·</span>
-                    <span>{res.visitante || "-"}</span>
+
+                  <div className={`font-mono text-lg font-black shrink-0 px-2.5 py-1 rounded-xl border ${
+                    finalizado
+                      ? "bg-stone-900 text-white border-stone-900 shadow-xs"
+                      : "bg-white/50 text-stone-400 border-white/60"
+                  }`}>
+                    <span>{finalizado ? res.local : "-"}</span>
+                    <span className={finalizado ? "text-stone-400 mx-1" : "text-stone-300 mx-1"}>·</span>
+                    <span>{finalizado ? res.visitante : "-"}</span>
                   </div>
                 </div>
               );
@@ -749,7 +869,7 @@ export default function ResultadosView({
           <div className="space-y-4">
             {partidos.map((partido, idx) => {
               const resOficial = resultados[partido.key] || { local: null, visitante: null };
-              const hayOficialValido = disponible && resOficial.local !== null && resOficial.visitante !== null;
+              const hayOficialValido = disponible && getEstadoPartido(partido.key) === "finalizado";
 
               return (
                 <div
@@ -773,14 +893,19 @@ export default function ResultadosView({
                         Oficial:
                       </span>
                       {hayOficialValido ? (
-                        <div className="font-mono text-base font-extrabold text-stone-900 bg-white/70 border border-white/90 px-3 py-1 rounded-xl shadow-xs">
-                          <span>{resOficial.local}</span>
-                          <span className="text-stone-300 mx-1">·</span>
-                          <span>{resOficial.visitante}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
+                            Finalizado
+                          </span>
+                          <div className="font-mono text-base font-extrabold text-stone-900 bg-white/70 border border-white/90 px-3 py-1 rounded-xl shadow-xs">
+                            <span>{resOficial.local}</span>
+                            <span className="text-stone-300 mx-1">·</span>
+                            <span>{resOficial.visitante}</span>
+                          </div>
                         </div>
                       ) : (
-                        <span className="font-mono text-xs text-stone-400 bg-white/30 px-2.5 py-1 rounded-xl border border-white/40">
-                          Pendiente
+                        <span className="font-mono text-xs text-stone-500 bg-white/40 px-2.5 py-1 rounded-xl border border-white/50">
+                          En juego / Pendiente
                         </span>
                       )}
                     </div>
@@ -888,10 +1013,10 @@ export default function ResultadosView({
                 {disponible && (
                   <div className="bg-white/50 border border-white/70 px-5 py-3 rounded-2xl flex items-center gap-3 shrink-0 shadow-xs">
                     <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                      Aciertos Oficiales:
+                      {estaCompleto ? "Aciertos Oficiales:" : "Aciertos en Directo:"}
                     </span>
-                    <span className="font-mono text-2xl font-black text-stone-900 bg-stone-900 text-white px-3 py-0.5 rounded-xl">
-                      {usuarioSeleccionadoObj.aciertosEnJornada} / 6
+                    <span className="font-mono text-xl sm:text-2xl font-black text-stone-900 bg-stone-900 text-white px-3 py-0.5 rounded-xl">
+                      {usuarioSeleccionadoObj.aciertosEnJornada} {estaCompleto ? "/ 6" : `(${partidosFinalizadosCount} finalizados)`}
                     </span>
                   </div>
                 )}
@@ -902,7 +1027,7 @@ export default function ResultadosView({
                 {partidos.map((partido, idx) => {
                   const pred = usuarioSeleccionadoObj.pronosticos?.[partido.key] || { local: "-", visitante: "-" };
                   const resOficial = resultados[partido.key] || { local: null, visitante: null };
-                  const hayOficialValido = disponible && resOficial.local !== null && resOficial.visitante !== null;
+                  const hayOficialValido = disponible && getEstadoPartido(partido.key) === "finalizado";
                   const acierta = hayOficialValido &&
                     String(pred.local).trim() === String(resOficial.local).trim() &&
                     String(pred.visitante).trim() === String(resOficial.visitante).trim();

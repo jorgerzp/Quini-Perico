@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 import { TeamName } from "../utils/teamUtils";
+import EstadisticasModal from "./EstadisticasModal";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
@@ -30,6 +31,13 @@ export default function BoletoView({
   const [cargandoIA, setCargandoIA] = useState(false);
   const [infoIA, setInfoIA] = useState(null);
   const [mostrarModalIA, setMostrarModalIA] = useState(false);
+
+  // Estados para estadísticas oficiales API-Sports V3
+  const [cargandoStatsKey, setCargandoStatsKey] = useState(null);
+  const [modalStatsData, setModalStatsData] = useState(null);
+  const [modalStatsError, setModalStatsError] = useState(null);
+  const [mostrarModalStats, setMostrarModalStats] = useState(false);
+  const [partidoStatsActivo, setPartidoStatsActivo] = useState(null);
 
   const hayPartidos = Array.isArray(partidos) && partidos.length === 6 && partidos.every((p) => p.home && p.away);
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
@@ -384,6 +392,32 @@ export default function BoletoView({
     }
   };
 
+  // Consultar estadísticas oficiales reales en API-Sports V3
+  const handleVerEstadisticas = async (home, away, key) => {
+    if (cargandoStatsKey) return;
+    setCargandoStatsKey(key);
+    setPartidoStatsActivo({ home, away, key });
+    setModalStatsError(null);
+    setMostrarModalStats(true);
+    setModalStatsData(null);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/api/estadisticas/${encodeURIComponent(home)}/${encodeURIComponent(away)}`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudieron obtener las estadísticas oficiales de este partido.");
+      }
+      setModalStatsData(data);
+    } catch (err) {
+      console.error("Error al cargar estadísticas:", err);
+      setModalStatsError(err.message || "Error al conectar con API-Sports V3.");
+    } finally {
+      setCargandoStatsKey(null);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
       <section className="pb-8 mb-2 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl px-6 sm:px-10 py-8">
@@ -457,10 +491,33 @@ export default function BoletoView({
               key={match.id || idx}
               className="py-7 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl transition-all"
             >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
-                  PARTIDO {String(idx + 1).padStart(2, "0")}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
+                    PARTIDO {String(idx + 1).padStart(2, "0")}
+                  </span>
+
+                  <button
+                    type="button"
+                    id={`btn-stats-match-${idx + 1}`}
+                    onClick={() => handleVerEstadisticas(match.home, match.away, key)}
+                    disabled={cargandoStatsKey === key}
+                    className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/40 hover:bg-white/80 border border-white/60 text-stone-700 hover:text-stone-900 transition-all duration-300 cursor-pointer flex items-center gap-1.5 hover-negro-brillante shadow-2xs disabled:opacity-50"
+                    title={`Ver estadísticas reales H2H y estado de forma de ${match.home} vs ${match.away} (API-Sports V3)`}
+                  >
+                    {cargandoStatsKey === key ? (
+                      <>
+                        <span className="w-3 h-3 border-2 border-stone-800 border-t-transparent rounded-full animate-spin" />
+                        <span>Cargando datos...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Ver Estadísticas 📊</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <span className="text-xs font-mono font-medium text-stone-500 uppercase">
                   {summary.text}
                 </span>
@@ -767,6 +824,29 @@ export default function BoletoView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Estadísticas Reales (API-Sports V3) */}
+      {mostrarModalStats && (
+        <EstadisticasModal
+          datos={modalStatsData}
+          cargando={Boolean(cargandoStatsKey)}
+          error={modalStatsError}
+          onClose={() => {
+            setMostrarModalStats(false);
+            setModalStatsData(null);
+            setModalStatsError(null);
+          }}
+          onReintentar={() => {
+            if (partidoStatsActivo) {
+              handleVerEstadisticas(
+                partidoStatsActivo.home,
+                partidoStatsActivo.away,
+                partidoStatsActivo.key
+              );
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -464,9 +464,10 @@ export default function AdminView({
         <button
           type="button"
           onClick={onIrResultados}
-          className="self-start sm:self-auto px-10 py-3.5 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer"
+          className="self-start sm:self-auto px-8 py-3.5 rounded-full bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider shadow-[0_10px_30px_rgba(40,36,32,0.2)] hover:bg-stone-700 transition-all cursor-pointer flex items-center gap-2"
         >
-          Resultados Oficiales
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Resultados en Directo</span>
         </button>
       </div>
 

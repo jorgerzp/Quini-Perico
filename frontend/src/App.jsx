@@ -208,24 +208,27 @@ export default function App() {
     recargarTodo();
   }, []); // Cargar sólo al montar la aplicación
 
-  // Sincronización en vivo: al cambiar a boleto o resultados, cargar partidos y usuarios de inmediato
+  // Sincronización en vivo: al cambiar a boleto, resultados o clasificación, recargar datos de inmediato
   useEffect(() => {
     if (seccionActiva === "boleto" || seccionActiva === "resultados") {
       cargarPartidos();
       cargarUsuarios();
     }
-  }, [seccionActiva, cargarPartidos, cargarUsuarios]);
+    if (seccionActiva === "clasificacion") {
+      cargarClasificacion();
+    }
+  }, [seccionActiva, cargarPartidos, cargarUsuarios, cargarClasificacion]);
 
-
-  // Polling cada 6s para partidos, usuarios y notificaciones
+  // Polling cada 6s para partidos, usuarios, notificaciones y clasificación en vivo
   useEffect(() => {
     const interval = setInterval(() => {
       cargarPartidos();
       cargarNotificaciones();
       cargarUsuarios();
+      cargarClasificacion();
     }, 6000);
     return () => clearInterval(interval);
-  }, [cargarPartidos, cargarNotificaciones, cargarUsuarios]);
+  }, [cargarPartidos, cargarNotificaciones, cargarUsuarios, cargarClasificacion]);
 
   // Manejo de Login y Logout
   const handleLoginSuccess = (usuario) => {
