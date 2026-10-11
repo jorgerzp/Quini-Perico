@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
+import UserAvatar from "./UserAvatar";
 
 export default function PagosView({ usuarioActivo, onActualizarUsuarios }) {
   const esJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
@@ -417,13 +418,13 @@ export default function PagosView({ usuarioActivo, onActualizarUsuarios }) {
                       >
                         {/* Avatar y Nombre */}
                         <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${getAvatarColorClass(
-                              u.avatarColor
-                            )}`}
-                          >
-                            {u.nombre.charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            nombre={u.nombre}
+                            avatarColor={u.avatarColor}
+                            className="w-10 h-10 rounded-xl shadow-xs"
+                            imgClassName="w-full h-full object-cover rounded-xl"
+                            fallbackClassName="text-sm font-black"
+                          />
 
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-stone-900 truncate">

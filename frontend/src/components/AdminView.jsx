@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 import { procesarBoletoQuinigolPipeline } from "../utils/ocrPipeline";
+import UserAvatar from "./UserAvatar";
 
 export default function AdminView({
   bote,
@@ -655,11 +656,17 @@ export default function AdminView({
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
-                          <div
-                            className={`w-3.5 h-3.5 rounded-full shrink-0 ${
-                              !notif.leida ? "bg-red-500 badge-notif-pulse" : "bg-stone-300"
-                            }`}
-                          />
+                          <div className="relative shrink-0">
+                            <UserAvatar
+                              nombre={notif.usuarioNombre}
+                              className="w-11 h-11 rounded-2xl shadow-xs border border-white/80"
+                              imgClassName="w-full h-full object-cover rounded-2xl"
+                              fallbackClassName="text-sm font-black"
+                            />
+                            {!notif.leida && (
+                              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 ring-2 ring-white badge-notif-pulse" />
+                            )}
+                          </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="text-lg font-extrabold text-stone-900 tracking-tight">

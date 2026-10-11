@@ -1,4 +1,5 @@
 import React from "react";
+import UserAvatar from "./UserAvatar";
 
 export default function ClasificacionView({
   clasificacion = [],
@@ -65,9 +66,17 @@ export default function ClasificacionView({
         {segundo && (
           <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 flex flex-col justify-between order-2 md:order-1">
             <div>
-              <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
-                02 · SEGUNDO
-              </span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block">
+                  02 · SEGUNDO
+                </span>
+                <UserAvatar
+                  nombre={segundo.nombre}
+                  className="w-12 h-12 rounded-2xl shadow-sm border border-white/60"
+                  imgClassName="w-full h-full object-cover rounded-2xl"
+                  fallbackClassName="text-sm font-black"
+                />
+              </div>
               <h3 className="text-2xl font-bold tracking-tight text-stone-800">
                 {segundo.nombre}
               </h3>
@@ -87,11 +96,19 @@ export default function ClasificacionView({
         )}
 
         {primero && (
-          <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-10 flex flex-col justify-between order-1 md:order-2">
+          <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 sm:p-10 flex flex-col justify-between order-1 md:order-2 ring-2 ring-stone-800/10">
             <div>
-              <span className="text-xs font-mono font-bold text-stone-600 uppercase tracking-widest block mb-4">
-                01 · LÍDER DE LA PEÑA
-              </span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono font-bold text-stone-600 uppercase tracking-widest block">
+                  01 · LÍDER DE LA PEÑA
+                </span>
+                <UserAvatar
+                  nombre={primero.nombre}
+                  className="w-14 h-14 rounded-2xl shadow-md border-2 border-amber-400/80"
+                  imgClassName="w-full h-full object-cover rounded-2xl"
+                  fallbackClassName="text-lg font-black"
+                />
+              </div>
               <h3 className="text-3xl font-extrabold tracking-tight text-stone-800">
                 {primero.nombre}
               </h3>
@@ -113,9 +130,17 @@ export default function ClasificacionView({
         {tercero && (
           <div className="bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl p-8 flex flex-col justify-between order-3">
             <div>
-              <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block mb-4">
-                03 · TERCERO
-              </span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono font-bold text-stone-400 uppercase tracking-widest block">
+                  03 · TERCERO
+                </span>
+                <UserAvatar
+                  nombre={tercero.nombre}
+                  className="w-12 h-12 rounded-2xl shadow-sm border border-white/60"
+                  imgClassName="w-full h-full object-cover rounded-2xl"
+                  fallbackClassName="text-sm font-black"
+                />
+              </div>
               <h3 className="text-2xl font-bold tracking-tight text-stone-800">
                 {tercero.nombre}
               </h3>
@@ -155,10 +180,17 @@ export default function ClasificacionView({
                 key={user.id}
                 className="py-6 flex items-center justify-between gap-6 transition-colors"
               >
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4 sm:gap-6">
                   <span className="font-mono text-base font-bold text-stone-400 w-8">
                     {String(idx + 1).padStart(2, "0")}
                   </span>
+
+                  <UserAvatar
+                    nombre={user.nombre}
+                    className="w-11 h-11 rounded-2xl shadow-xs border border-white/60"
+                    imgClassName="w-full h-full object-cover rounded-2xl"
+                    fallbackClassName="text-sm font-black"
+                  />
 
                   <div>
                     <div className="flex items-baseline gap-3">

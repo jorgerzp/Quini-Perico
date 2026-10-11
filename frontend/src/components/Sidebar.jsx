@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import UserAvatar from "./UserAvatar";
 
 export default function Sidebar({
   seccionActiva,
@@ -101,13 +102,21 @@ export default function Sidebar({
         </nav>
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 relative">
-          <div className="hidden md:block text-right">
-            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
-              {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
-            </span>
-            <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
-              {esDemo ? "Usuario Demo" : nombreFormateado}
-            </p>
+          <div className="hidden md:flex items-center gap-3">
+            <UserAvatar
+              nombre={usuarioActivo?.nombre}
+              className="w-9 h-9 rounded-full ring-2 ring-white/60 shadow-xs"
+              imgClassName="w-full h-full object-cover rounded-full"
+              fallbackClassName="text-xs font-black"
+            />
+            <div className="text-right">
+              <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
+                {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+              </span>
+              <p className="text-sm font-bold tracking-tight text-stone-800 leading-tight">
+                {esDemo ? "Usuario Demo" : nombreFormateado}
+              </p>
+            </div>
           </div>
 
           <button
@@ -141,16 +150,24 @@ export default function Sidebar({
           menuMovilAbierto ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="mb-6 pb-4 border-b border-white/60">
-          <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
-            {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
-          </span>
-          <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-1">
-            {esDemo ? "Usuario Demo" : nombreFormateado}
-          </p>
-          <p className="text-xs text-stone-400 font-medium mt-0.5">
-            {esDemo ? "Acceso de invitado (solo lectura)" : `${usuarioActivo?.aciertos ?? 0} aciertos acumulados`}
-          </p>
+        <div className="mb-6 pb-4 border-b border-white/60 flex items-center gap-3.5">
+          <UserAvatar
+            nombre={usuarioActivo?.nombre}
+            className="w-12 h-12 rounded-2xl ring-2 ring-white/60 shadow-xs"
+            imgClassName="w-full h-full object-cover rounded-2xl"
+            fallbackClassName="text-base font-black"
+          />
+          <div>
+            <span className="text-[10px] font-semibold tracking-widest text-stone-400 uppercase block">
+              {esDemo ? "MODO DEMO" : esSuperAdmin ? "ADMINISTRADOR" : "PARTICIPANTE"}
+            </span>
+            <p className="text-lg font-extrabold tracking-tight text-stone-800 mt-0.5">
+              {esDemo ? "Usuario Demo" : nombreFormateado}
+            </p>
+            <p className="text-xs text-stone-400 font-medium mt-0.5">
+              {esDemo ? "Acceso de invitado (solo lectura)" : `${usuarioActivo?.aciertos ?? 0} aciertos acumulados`}
+            </p>
+          </div>
         </div>
 
         <nav className="space-y-1">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 import { TeamName } from "../utils/teamUtils";
+import UserAvatar from "./UserAvatar";
 
 const GOAL_OPTIONS = ["0", "1", "2", "M"];
 
@@ -436,7 +437,6 @@ export default function ResultadosView({
 
           <div className="flex flex-wrap items-center gap-2">
             {listaParticipantes.map((p) => {
-              const bgAvatar = AVATAR_BG[p.avatarColor] || AVATAR_BG.default;
               return (
                 <div
                   key={p.id}
@@ -447,9 +447,12 @@ export default function ResultadosView({
                   }`}
                   title={p.haEnviado ? `${p.nombre} ya ha sellado su apuesta` : `${p.nombre} aún no ha enviado su apuesta`}
                 >
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${bgAvatar}`}>
-                    {p.nombre.charAt(0)}
-                  </span>
+                  <UserAvatar
+                    nombre={p.nombre}
+                    avatarColor={p.avatarColor}
+                    className="w-5 h-5 rounded-full"
+                    fallbackClassName="text-[9px] font-black"
+                  />
                   <span>{p.nombre}</span>
                   {p.haEnviado ? (
                     <span className="text-emerald-600 font-bold">✓</span>
@@ -800,7 +803,6 @@ export default function ResultadosView({
             </span>
 
             {listaParticipantes.map((p) => {
-              const bgAvatar = AVATAR_BG[p.avatarColor] || AVATAR_BG.default;
               const estaSeleccionado = modoVista === "por_usuario" && usuarioSeleccionadoId === p.id;
 
               return (
@@ -822,9 +824,12 @@ export default function ResultadosView({
                       : "bg-white/40 hover:bg-white/70 text-stone-700 border border-white/60 hover-negro-brillante cursor-pointer"
                   }`}
                 >
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${bgAvatar}`}>
-                    {p.nombre.charAt(0)}
-                  </span>
+                  <UserAvatar
+                    nombre={p.nombre}
+                    avatarColor={p.avatarColor}
+                    className="w-5 h-5 rounded-full"
+                    fallbackClassName="text-[10px] font-black"
+                  />
                   <span>{p.nombre}</span>
 
                   {p.haEnviado ? (
@@ -923,7 +928,6 @@ export default function ResultadosView({
                         const acierta = hayOficialValido &&
                           String(pred.local).trim() === String(resOficial.local).trim() &&
                           String(pred.visitante).trim() === String(resOficial.visitante).trim();
-                        const bgAvatar = AVATAR_BG[participante.avatarColor] || AVATAR_BG.default;
 
                         return (
                           <div
@@ -935,9 +939,12 @@ export default function ResultadosView({
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${bgAvatar}`}>
-                                {participante.nombre.charAt(0)}
-                              </span>
+                              <UserAvatar
+                                nombre={participante.nombre}
+                                avatarColor={participante.avatarColor}
+                                className="w-7 h-7 rounded-full shadow-2xs"
+                                fallbackClassName="text-xs font-black"
+                              />
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-stone-800 truncate leading-tight">
                                   {participante.nombre}
@@ -984,11 +991,13 @@ export default function ResultadosView({
               {/* Tarjeta de Encabezado del Miembro */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/40">
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-md ${
-                    AVATAR_BG[usuarioSeleccionadoObj.avatarColor] || AVATAR_BG.default
-                  }`}>
-                    {usuarioSeleccionadoObj.nombre.charAt(0)}
-                  </div>
+                  <UserAvatar
+                    nombre={usuarioSeleccionadoObj.nombre}
+                    avatarColor={usuarioSeleccionadoObj.avatarColor}
+                    className="w-14 h-14 rounded-2xl shadow-md"
+                    imgClassName="w-full h-full object-cover rounded-2xl"
+                    fallbackClassName="text-2xl font-black"
+                  />
 
                   <div>
                     <span className="text-xs font-semibold tracking-widest text-stone-400 uppercase block mb-0.5 font-mono">

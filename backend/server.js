@@ -11,6 +11,12 @@ try {
   // Ignored
 }
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -26,6 +32,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Servir la carpeta de imágenes de usuarios (logos de participantes)
+app.use("/imagenes", express.static(path.join(__dirname, "../imagenes")));
+app.use("/imagenes", express.static(path.join(__dirname, "../frontend/public/imagenes")));
 
 // Semillado inicial de los 8 usuarios oficiales y el Bote a 0
 async function seedDatabase() {
