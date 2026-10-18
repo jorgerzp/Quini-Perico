@@ -14,8 +14,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export default function App() {
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_AUTH_KEY);
-      return stored ? JSON.parse(stored) : null;
+      const storedLocal = localStorage.getItem(STORAGE_AUTH_KEY);
+      if (storedLocal) return JSON.parse(storedLocal);
+      const storedSession = sessionStorage.getItem(STORAGE_AUTH_KEY);
+      if (storedSession) return JSON.parse(storedSession);
+      return null;
     } catch {
       return null;
     }
@@ -122,7 +125,11 @@ export default function App() {
             const refrescado = data.find((u) => u.id === actual.id || u.nombre === actual.nombre);
             if (refrescado) {
               try {
-                localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
+                if (localStorage.getItem(STORAGE_AUTH_KEY)) {
+                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
+                } else if (sessionStorage.getItem(STORAGE_AUTH_KEY)) {
+                  sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
+                }
               } catch {}
               return refrescado;
             }
@@ -135,7 +142,11 @@ export default function App() {
             const match = data.find((u) => u.id === usuarioLogueado.id || u.nombre === usuarioLogueado.nombre);
             if (match) {
               try {
-                localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
+                if (localStorage.getItem(STORAGE_AUTH_KEY)) {
+                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
+                } else if (sessionStorage.getItem(STORAGE_AUTH_KEY)) {
+                  sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
+                }
               } catch {}
               return match;
             }
@@ -231,11 +242,17 @@ export default function App() {
   }, [cargarPartidos, cargarNotificaciones, cargarUsuarios, cargarClasificacion]);
 
   // Manejo de Login y Logout
-  const handleLoginSuccess = (usuario) => {
+  const handleLoginSuccess = (usuario, recordarme = true) => {
     setUsuarioLogueado(usuario);
     setUsuarioActivo(usuario);
     try {
-      localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
+      if (recordarme) {
+        localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
+        sessionStorage.removeItem(STORAGE_AUTH_KEY);
+      } else {
+        sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
+        localStorage.removeItem(STORAGE_AUTH_KEY);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -249,6 +266,7 @@ export default function App() {
     setUsuarioActivo(null);
     try {
       localStorage.removeItem(STORAGE_AUTH_KEY);
+      sessionStorage.removeItem(STORAGE_AUTH_KEY);
     } catch (e) {
       console.error(e);
     }

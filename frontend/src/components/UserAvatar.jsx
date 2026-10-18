@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_URL } from "../config";
 
 const AVATAR_BG = {
   blue: "bg-blue-600 text-white",
@@ -53,12 +54,12 @@ export function getAvatarPath(nombre, timestamp = null) {
 }
 
 /**
- * Componente UserAvatar que muestra la foto oficial del miembro
- * guardada en la carpeta imagenes. Si no existe imagen o falla,
- * muestra un fallback limpio y elegante con la inicial.
+ * Componente UserAvatar con soporte para fotos desde Base de Datos (API),
+ * fallback a estáticos de Vercel/disco, y badge con inicial de respaldo.
  */
 export default function UserAvatar({
   nombre = "",
+  avatar = null,
   avatarColor = "default",
   className = "w-8 h-8 rounded-full",
   imgClassName = "w-full h-full object-cover",
@@ -67,7 +68,17 @@ export default function UserAvatar({
   timestamp = null,
 }) {
   const [version, setVersion] = useState(() => timestamp || null);
-  const [errorCarga, setErrorCarga] = useState(false);
+  const [customAvatar, setCustomAvatar] = useState(() => avatar || null);
+  const [falloApi, setFalloApi] = useState(false);
+  const [falloEstatico, setFalloEstatico] = useState(false);
+
+  useEffect(() => {
+    if (avatar) {
+      setCustomAvatar(avatar);
+      setFalloApi(false);
+      setFalloEstatico(false);
+    }
+  }, [avatar]);
 
   useEffect(() => {
     const handleAvatarActualizado = (e) => {
@@ -76,7 +87,11 @@ export default function UserAvatar({
       const updatedClean = String(updatedNombre || "").trim().toLowerCase();
 
       if (!updatedNombre || cleanNombre.includes(updatedClean) || updatedClean.includes(cleanNombre)) {
-        setErrorCarga(false);
+        if (e.detail?.avatar) {
+          setCustomAvatar(e.detail.avatar);
+        }
+        setFalloApi(false);
+        setFalloEstatico(false);
         setVersion(e.detail?.timestamp || Date.now());
       }
     };
@@ -86,31 +101,64 @@ export default function UserAvatar({
   }, [nombre]);
 
   useEffect(() => {
-    setErrorCarga(false);
+    setFalloApi(false);
+    setFalloEstatico(false);
     if (timestamp) setVersion(timestamp);
   }, [nombre, timestamp]);
 
-  const src = getAvatarPath(nombre, version);
+  const clean = String(nombre || "").trim();
   const bgClass = AVATAR_BG[avatarColor] || AVATAR_BG.default;
   const inicial = (nombre || "?").charAt(0).toUpperCase();
-
   const tooltip = title || nombre;
+
+  // 1. Si viene avatar directo en base64/URL, usarlo directamente
+  if (customAvatar && !falloApi) {
+    return (
+      <div
+        title={tooltip}
+        className={`relative overflow-hidden shrink-0 flex items-center justify-center select-none shadow-xs ${className} bg-stone-200`}
+      >
+        <img
+          src={customAvatar}
+          alt={nombre}
+          className={`${imgClassName} transition-transform duration-200`}
+          loading="lazy"
+          onError={() => setFalloApi(true)}
+        />
+      </div>
+    );
+  }
+
+  // 2. Ruta API para servir avatar dinámico desde PostgreSQL/Express
+  const apiSrc = clean ? `${API_URL}/api/usuario/avatar/${encodeURIComponent(clean)}${version ? `?t=${version}` : ""}` : null;
+  // 3. Ruta estática local/Vercel
+  const staticSrc = getAvatarPath(clean, version);
+
+  const imgSrc = !falloApi && apiSrc ? apiSrc : !falloEstatico && staticSrc ? staticSrc : null;
+
+  const handleImageError = () => {
+    if (!falloApi && apiSrc) {
+      setFalloApi(true); // Intenta fallback a staticSrc
+    } else {
+      setFalloEstatico(true); // Fallback a inicial
+    }
+  };
 
   return (
     <div
       title={tooltip}
       className={`relative overflow-hidden shrink-0 flex items-center justify-center select-none shadow-xs ${className} ${
-        errorCarga || !src ? bgClass : "bg-stone-200"
+        !imgSrc || (falloApi && falloEstatico) ? bgClass : "bg-stone-200"
       }`}
     >
-      {src && !errorCarga ? (
+      {imgSrc && (!falloApi || !falloEstatico) ? (
         <img
-          key={src}
-          src={src}
+          key={imgSrc}
+          src={imgSrc}
           alt={nombre}
           className={`${imgClassName} transition-transform duration-200`}
           loading="lazy"
-          onError={() => setErrorCarga(true)}
+          onError={handleImageError}
         />
       ) : (
         <span className={fallbackClassName}>{inicial}</span>

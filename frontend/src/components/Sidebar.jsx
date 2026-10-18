@@ -114,6 +114,7 @@ export default function Sidebar({
             >
               <UserAvatar
                 nombre={usuarioActivo?.nombre}
+                avatar={usuarioActivo?.avatar}
                 className="w-9 h-9 rounded-full ring-2 ring-white/60 shadow-xs group-hover:ring-stone-900 transition-all"
                 imgClassName="w-full h-full object-cover rounded-full group-hover:opacity-80 transition-opacity"
                 fallbackClassName="text-xs font-black"
@@ -188,6 +189,7 @@ export default function Sidebar({
             >
               <UserAvatar
                 nombre={usuarioActivo?.nombre}
+                avatar={usuarioActivo?.avatar}
                 className="w-12 h-12 rounded-2xl ring-2 ring-white/60 shadow-xs"
                 imgClassName="w-full h-full object-cover rounded-2xl"
                 fallbackClassName="text-base font-black"

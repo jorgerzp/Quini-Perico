@@ -4,10 +4,10 @@ import { API_URL } from "../config";
 import UserAvatar from "./UserAvatar";
 
 /**
- * Redimensiona y comprime una imagen seleccionada a max 600x600 JPEG
- * para que sea ultraligera y siempre de alta calidad.
+ * Redimensiona y comprime una imagen seleccionada a max 360x360 JPEG optimizado
+ * para que sea ultraligera (~15-20 KB), nítida y se guarde al instante en PostgreSQL.
  */
-function procesarImagenCanvas(file, maxDimension = 600) {
+function procesarImagenCanvas(file, maxDimension = 360) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -39,8 +39,8 @@ function procesarImagenCanvas(file, maxDimension = 600) {
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convertir a base64 JPEG con 90% de calidad
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        // Convertir a base64 JPEG con 85% de calidad (ligero y nítido)
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
         resolve(dataUrl);
       };
       img.src = e.target.result;
@@ -70,6 +70,15 @@ export default function CambiarAvatarModal({
 
   const fileInputRef = useRef(null);
 
+  // Sincronizar usuario seleccionado cuando el modal se abre
+  React.useEffect(() => {
+    if (abierto) {
+      setUsuarioSeleccionado(usuarioActivo?.nombre || "Jorge");
+      setImagenPreview(null);
+      setMensaje(null);
+    }
+  }, [abierto, usuarioActivo?.nombre]);
+
   const manejarArchivo = async (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -78,7 +87,7 @@ export default function CambiarAvatarModal({
     }
 
     try {
-      const dataUrl = await procesarImagenCanvas(file, 600);
+      const dataUrl = await procesarImagenCanvas(file, 360);
       setImagenPreview(dataUrl);
       setMensaje(null);
     } catch (err) {
@@ -127,26 +136,42 @@ export default function CambiarAvatarModal({
         origin: { y: 0.6 },
       });
 
-      // Disparar evento global para refrescar todas las fotos instantáneamente
+      const avatarFinal = data.avatar || imagenPreview;
+      const timestampFinal = data.timestamp || Date.now();
+
+      // Actualizar localStorage si el usuario logueado es el que ha cambiado la foto
+      try {
+        const stored = localStorage.getItem("quini_perico_auth_user");
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u.nombre === usuarioSeleccionado) {
+            u.avatar = avatarFinal;
+            localStorage.setItem("quini_perico_auth_user", JSON.stringify(u));
+          }
+        }
+      } catch {}
+
+      // Disparar evento global para refrescar todas las fotos instantáneamente en la interfaz
       window.dispatchEvent(
         new CustomEvent("avatar-actualizado", {
           detail: {
             nombre: usuarioSeleccionado,
-            timestamp: data.timestamp || Date.now(),
+            avatar: avatarFinal,
+            timestamp: timestampFinal,
           },
         })
       );
 
       setMensaje({
         tipo: "success",
-        texto: `¡Foto de ${usuarioSeleccionado} actualizada y sobreescrita con éxito!`,
+        texto: `¡Foto de ${usuarioSeleccionado} actualizada con éxito en la base de datos!`,
       });
 
       setTimeout(() => {
         onCerrar();
         setImagenPreview(null);
         setMensaje(null);
-      }, 1300);
+      }, 1200);
     } catch (err) {
       setMensaje({ tipo: "error", texto: err.message });
     } finally {

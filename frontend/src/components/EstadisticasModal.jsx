@@ -25,8 +25,8 @@ export default function EstadisticasModal({ datos, cargando, error, onClose, onR
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-stone-200/60">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold font-mono tracking-widest text-stone-500 uppercase bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
-                API-Sports V3 · Datos 100% Reales
+              <span className="text-[11px] font-bold font-mono tracking-widest text-stone-600 uppercase bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
+                {datos?.fuente || "API-Sports V3 · Oficial"}
               </span>
               {datos?.cached && (
                 <span className="text-[10px] font-mono text-stone-400">

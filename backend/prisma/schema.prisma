@@ -15,6 +15,7 @@ model Usuario {
   puntos         Int      @default(0)
   aciertos       Int      @default(0)
   avatarColor    String   @default("blue")
+  avatar         String?  // Base64 o URL de foto de perfil
   fecha_creacion DateTime @default(now())
   jugadas        Jugada[]
   notificaciones Notificacion[]

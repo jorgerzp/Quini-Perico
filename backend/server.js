@@ -278,6 +278,7 @@ app.post("/api/login", async (req, res) => {
         id: usuario.id,
         nombre: usuario.nombre,
         rol: usuario.rol,
+        avatar: usuario.avatar || null,
         isDemo: false,
         puntos: usuario.puntos,
         aciertos: usuario.aciertos,
@@ -297,7 +298,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 // --- ENDPOINT CAMBIO DE FOTO / LOGO DE PERFIL ---
-// Sobreescribe el archivo existente del usuario para que el almacenamiento nunca crezca.
+// Guarda la foto en la base de datos (PostgreSQL/Neon) y sobreescribe en disco de manera segura.
 app.post("/api/usuario/avatar", async (req, res) => {
   try {
     const { nombre, imagenBase64 } = req.body;
@@ -316,70 +317,148 @@ app.post("/api/usuario/avatar", async (req, res) => {
       return res.status(403).json({ error: "El usuario demo no puede modificar fotos de perfil." });
     }
 
-    // Extraer base64 crudo
-    const matches = String(imagenBase64).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    const base64Data = matches ? matches[2] : imagenBase64;
-    const buffer = Buffer.from(base64Data, "base64");
+    // Buscar el usuario en la base de datos
+    const normalize = (str) =>
+      String(str || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
 
-    if (!buffer || buffer.length === 0) {
-      return res.status(400).json({ error: "El archivo de imagen no es válido." });
+    const usuarios = await prisma.usuario.findMany();
+    const usuario = usuarios.find((u) => normalize(u.nombre) === lower);
+
+    if (!usuario) {
+      return res.status(404).json({ error: `El usuario '${clean}' no existe.` });
     }
 
-    // Mapeo canónico a los nombres fijos para SOBREESCRIBIR siempre el mismo archivo
-    const mapaArchivos = {
-      acuna: ["logo-Acuna.jpg", "logo-Acuña.jpg"],
-      ale: ["logo-Ale.jpg"],
-      andres: ["logo-Andres.jpg", "logo-Andrés.jpg"],
-      miguel: ["logo-Miguel.jpg"],
-      mora: ["logo-Mora.jpg"],
-      rafa: ["logo-Rafa.jpg"],
-      vergara: ["logo-Vergara.jpg"],
-      jorge: ["logo-Jorge.jpg"],
-    };
+    // 1. Guardar en Base de Datos de manera 100% persistente (funciona en Vercel, Render y local)
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { avatar: imagenBase64 },
+    });
 
-    let listaArchivos = mapaArchivos[lower];
-    if (!listaArchivos) {
-      for (const [clave, archivos] of Object.entries(mapaArchivos)) {
-        if (lower.startsWith(clave) || lower.includes(clave)) {
-          listaArchivos = archivos;
-          break;
+    console.log(`[Avatar] Foto de '${usuario.nombre}' guardada en la base de datos con éxito.`);
+
+    // 2. Extraer base64 y respaldar en disco si el sistema de archivos lo permite
+    try {
+      const matches = String(imagenBase64).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      const base64Data = matches ? matches[2] : imagenBase64;
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const mapaArchivos = {
+        acuna: ["logo-Acuna.jpg", "logo-Acuña.jpg"],
+        ale: ["logo-Ale.jpg"],
+        andres: ["logo-Andres.jpg", "logo-Andrés.jpg"],
+        miguel: ["logo-Miguel.jpg"],
+        mora: ["logo-Mora.jpg"],
+        rafa: ["logo-Rafa.jpg"],
+        vergara: ["logo-Vergara.jpg"],
+        jorge: ["logo-Jorge.jpg"],
+      };
+
+      let listaArchivos = mapaArchivos[lower];
+      if (!listaArchivos) {
+        for (const [clave, archivos] of Object.entries(mapaArchivos)) {
+          if (lower.startsWith(clave) || lower.includes(clave)) {
+            listaArchivos = archivos;
+            break;
+          }
         }
       }
-    }
-
-    if (!listaArchivos) {
-      listaArchivos = [`logo-${clean}.jpg`];
-    }
-
-    // Guardar en las dos carpetas activas sobreescribiendo el archivo existente
-    const directoriosDestino = [
-      path.join(__dirname, "../imagenes"),
-      path.join(__dirname, "../frontend/public/imagenes"),
-    ];
-
-    for (const dir of directoriosDestino) {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      if (!listaArchivos) {
+        listaArchivos = [`logo-${clean}.jpg`];
       }
 
-      for (const archivo of listaArchivos) {
-        const rutaFinal = path.join(dir, archivo);
-        fs.writeFileSync(rutaFinal, buffer);
-      }
-    }
+      const directoriosDestino = [
+        path.join(__dirname, "../imagenes"),
+        path.join(__dirname, "../frontend/public/imagenes"),
+      ];
 
-    console.log(`[Avatar] Foto de '${clean}' actualizada y sobreescrita en: ${listaArchivos.join(", ")}`);
+      for (const dir of directoriosDestino) {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        for (const archivo of listaArchivos) {
+          const rutaFinal = path.join(dir, archivo);
+          fs.writeFileSync(rutaFinal, buffer);
+        }
+      }
+    } catch (diskErr) {
+      console.warn("[Avatar] Respaldo en disco omitido (se usará base de datos):", diskErr.message);
+    }
 
     const timestamp = Date.now();
     return res.json({
       ok: true,
-      mensaje: `Foto de perfil de ${clean} actualizada correctamente.`,
-      archivos: listaArchivos,
+      mensaje: `Foto de perfil de ${usuario.nombre} actualizada correctamente.`,
+      avatar: imagenBase64,
       timestamp,
     });
   } catch (error) {
     console.error("Error al guardar avatar:", error);
     return res.status(500).json({ error: "Error en el servidor al guardar la foto de perfil." });
+  }
+});
+
+// --- ENDPOINT SERVIR FOTO DE PERFIL / AVATAR ---
+app.get("/api/usuario/avatar/:nombre", async (req, res) => {
+  try {
+    const { nombre } = req.params;
+    if (!nombre) return res.status(400).send("Nombre requerido");
+
+    const normalize = (str) =>
+      String(str || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+    const cleanInput = normalize(nombre);
+    const usuarios = await prisma.usuario.findMany();
+    const usuario = usuarios.find((u) => normalize(u.nombre) === cleanInput);
+
+    if (usuario && usuario.avatar) {
+      const matches = String(usuario.avatar).match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches) {
+        const mimeType = matches[1] || "image/jpeg";
+        const buffer = Buffer.from(matches[2], "base64");
+        res.setHeader("Content-Type", mimeType);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.send(buffer);
+      }
+    }
+
+    // Fallback a archivos en disco si existen
+    const mapaArchivos = {
+      acuna: "logo-Acuna.jpg",
+      ale: "logo-Ale.jpg",
+      andres: "logo-Andres.jpg",
+      miguel: "logo-Miguel.jpg",
+      mora: "logo-Mora.jpg",
+      rafa: "logo-Rafa.jpg",
+      vergara: "logo-Vergara.jpg",
+      jorge: "logo-Jorge.jpg",
+    };
+
+    const filename = mapaArchivos[cleanInput] || `logo-${nombre}.jpg`;
+    const posiblesRutas = [
+      path.join(__dirname, "../imagenes", filename),
+      path.join(__dirname, "../frontend/public/imagenes", filename),
+    ];
+
+    for (const r of posiblesRutas) {
+      if (fs.existsSync(r)) {
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.sendFile(r);
+      }
+    }
+
+    return res.status(404).send("Avatar no encontrado");
+  } catch (error) {
+    console.error("Error al servir avatar:", error);
+    return res.status(500).send("Error del servidor");
   }
 });
 

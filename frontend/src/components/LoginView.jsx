@@ -2,8 +2,27 @@ import React, { useState } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 
+const SAVED_USER_KEY = "quini_perico_saved_username";
+const REMEMBER_KEY = "quini_perico_remember_me";
+
 export default function LoginView({ onLoginSuccess }) {
-  const [nombre, setNombre] = useState("");
+  const [recordarme, setRecordarme] = useState(() => {
+    try {
+      const stored = localStorage.getItem(REMEMBER_KEY);
+      return stored !== null ? stored === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const [nombre, setNombre] = useState(() => {
+    try {
+      return localStorage.getItem(SAVED_USER_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,13 +48,26 @@ export default function LoginView({ onLoginSuccess }) {
         throw new Error(data.error || "Error de autenticación. Verifica tus credenciales.");
       }
 
+      // Persistir o limpiar el usuario recordado según la casilla marcada
+      try {
+        if (recordarme) {
+          localStorage.setItem(SAVED_USER_KEY, user.trim());
+          localStorage.setItem(REMEMBER_KEY, "true");
+        } else {
+          localStorage.removeItem(SAVED_USER_KEY);
+          localStorage.setItem(REMEMBER_KEY, "false");
+        }
+      } catch (e) {
+        console.warn("No se pudo guardar la preferencia de sesión:", e);
+      }
+
       confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.6 },
       });
 
-      onLoginSuccess(data.usuario);
+      onLoginSuccess(data.usuario, recordarme);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -128,6 +160,28 @@ export default function LoginView({ onLoginSuccess }) {
                 {showPassword ? "Ocultar" : "Mostrar"}
               </button>
             </div>
+          </div>
+
+          {/* Casilla Recordarme Siempre */}
+          <div className="flex items-center justify-between px-1 pt-1">
+            <label
+              htmlFor="checkbox-recordarme"
+              className="flex items-center gap-2.5 cursor-pointer select-none group"
+            >
+              <input
+                id="checkbox-recordarme"
+                type="checkbox"
+                checked={recordarme}
+                onChange={(e) => setRecordarme(e.target.checked)}
+                className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-800 cursor-pointer accent-stone-900"
+              />
+              <span className="text-xs font-semibold text-stone-600 group-hover:text-stone-900 transition-colors">
+                Recordarme siempre
+              </span>
+            </label>
+            <span className="text-[11px] font-medium text-stone-400">
+              Mantener sesión abierta
+            </span>
           </div>
 
           {error && (
