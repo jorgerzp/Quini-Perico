@@ -634,6 +634,42 @@ export default function ResultadosView({
                           </div>
                         </div>
                       </div>
+
+                      {/* Resumen Anónimo de Apuestas de la Peña en este partido */}
+                      {(() => {
+                        const conteo = {};
+                        (participantesConApuesta || []).forEach((part) => {
+                          const p = part.pronosticos?.[partido.key];
+                          if (p && p.local !== null && p.visitante !== null && p.local !== undefined && p.visitante !== undefined) {
+                            const l = String(p.local).trim();
+                            const v = String(p.visitante).trim();
+                            if (l !== "" && v !== "" && l !== "-" && v !== "-") {
+                              const comb = `${l} - ${v}`;
+                              conteo[comb] = (conteo[comb] || 0) + 1;
+                            }
+                          }
+                        });
+                        const lista = Object.entries(conteo).map(([res, cant]) => ({ res, cant })).sort((a, b) => b.cant - a.cant);
+                        const total = lista.reduce((a, c) => a + c.cant, 0);
+
+                        return lista.length > 0 ? (
+                          <div className="mt-3.5 pt-2.5 border-t border-white/40 flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                              Ya apostados por la peña (anónimo · {total}):
+                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {lista.map(({ res, cant }, rIdx) => (
+                                <span
+                                  key={rIdx}
+                                  className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-white/60 border border-white/80 text-stone-700 shadow-2xs"
+                                >
+                                  {res} {cant > 1 ? `(×${cant})` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}

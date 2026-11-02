@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import confetti from "canvas-confetti";
 import { API_URL } from "../config";
 import { TeamName } from "../utils/teamUtils";
@@ -31,6 +31,8 @@ export default function BoletoView({
   const [cargandoIA, setCargandoIA] = useState(false);
   const [infoIA, setInfoIA] = useState(null);
   const [mostrarModalIA, setMostrarModalIA] = useState(false);
+  const [apuestasAnonimas, setApuestasAnonimas] = useState({});
+  const [mostrarBoletoSellado, setMostrarBoletoSellado] = useState(false);
 
   // Estados para estadísticas oficiales API-Sports V3
   const [cargandoStatsKey, setCargandoStatsKey] = useState(null);
@@ -43,6 +45,29 @@ export default function BoletoView({
   const isJorge = usuarioActivo?.nombre === "Jorge" || usuarioActivo?.rol === "superadmin";
   const isDemo = usuarioActivo?.rol === "demo" || usuarioActivo?.isDemo || usuarioActivo?.nombre?.toLowerCase() === "demo";
   const userName = isDemo ? "INVITADO DEMO" : usuarioActivo?.nombre ? usuarioActivo.nombre.toUpperCase() : "MIEMBRO";
+
+  // Cargar y actualizar en vivo las apuestas anónimas de cada partido
+  const cargarApuestasAnonimas = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/jornada/apuestas-anonimas`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.partidos) {
+          setApuestasAnonimas(data.partidos);
+        }
+      }
+    } catch (err) {
+      console.error("Error al cargar apuestas anónimas:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarApuestasAnonimas();
+    const interval = setInterval(() => {
+      cargarApuestasAnonimas();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [cargarApuestasAnonimas]);
 
   // Resetear estado al cambiar de usuario o jornada
   useEffect(() => {
@@ -58,8 +83,10 @@ export default function BoletoView({
   const coincideJornada = !jornadaNumReal || Number(jornadaNumReal) === Number(numeroJornada);
 
   const yaHaJugado = Boolean(
-    apuestaRecienGuardada ||
-    (haJugadoReal && coincideJornada)
+    !isDemo && (
+      apuestaRecienGuardada ||
+      (haJugadoReal && coincideJornada)
+    )
   );
 
   // Estado de Pago de Cuotas Mensuales (Jorge y Demo están exentos)
@@ -223,8 +250,129 @@ export default function BoletoView({
                 </svg>
               </button>
             )}
+
+            <button
+              type="button"
+              id="btn-toggle-ver-apuestas-partido"
+              onClick={() => setMostrarBoletoSellado(!mostrarBoletoSellado)}
+              className="mt-2 bg-white/40 hover:bg-white/70 border border-white/60 text-stone-700 text-xs font-bold uppercase tracking-wider rounded-full py-2.5 px-6 shadow-2xs transition-all cursor-pointer flex items-center gap-2 hover-negro-brillante"
+            >
+              <svg className="w-4 h-4 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{mostrarBoletoSellado ? "Ocultar detalles de partidos" : "Ver resultados ya apostados en cada partido"}</span>
+            </button>
           </div>
         </section>
+
+        {mostrarBoletoSellado && (
+          <section className="space-y-4 pt-4 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between pb-2 border-b border-white/40">
+              <span className="text-xs font-bold font-mono tracking-widest text-stone-500 uppercase">
+                TU APUESTA SELLADA Y PRONÓSTICOS REGISTRADOS
+              </span>
+              <span className="text-xs font-semibold text-stone-600 bg-white/40 px-3 py-1 rounded-full border border-white/60">
+                Solo lectura
+              </span>
+            </div>
+
+            {partidos.map((match, idx) => {
+              const key = match.key || `partido${idx + 1}`;
+              const current = predictions[key] || { local: "-", visitante: "-" };
+              const anonimosPartido = apuestasAnonimas[key] || [];
+              const totalApuestasPartido = anonimosPartido.reduce((acc, curr) => acc + (curr.repeticiones || 1), 0);
+              const tieneSeleccion = current.local !== null && current.visitante !== null;
+              const seleccionActual = tieneSeleccion ? `${current.local} - ${current.visitante}` : null;
+
+              return (
+                <div
+                  key={match.id || idx}
+                  className="py-6 px-6 sm:px-8 bg-white/30 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-3xl"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <span className="text-xs font-bold font-mono tracking-widest text-stone-400 uppercase">
+                      PARTIDO {String(idx + 1).padStart(2, "0")}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-stone-500 uppercase">
+                        Tu pronóstico:
+                      </span>
+                      <span className="font-mono text-sm font-black px-3 py-1 rounded-xl bg-stone-900 text-white shadow-xs">
+                        {current.local} - {current.visitante}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white/40 border border-white/60">
+                      <TeamName name={match.home} />
+                      <span className="font-mono text-base font-black px-3 py-1 rounded-xl bg-white/80 text-stone-900 shadow-2xs border border-white/90">
+                        {current.local ?? "-"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white/40 border border-white/60">
+                      <TeamName name={match.away} />
+                      <span className="font-mono text-base font-black px-3 py-1 rounded-xl bg-white/80 text-stone-900 shadow-2xs border border-white/90">
+                        {current.visitante ?? "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Resultados ya apostados en este partido (anónimo) */}
+                  <div className="mt-4 pt-3 border-t border-white/40">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-stone-700">
+                          Resultados apostados por la peña:
+                        </span>
+                        <span className="text-[10px] font-semibold text-stone-500 bg-white/50 border border-white/70 px-2.5 py-0.5 rounded-full">
+                          Sin nombres
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-800 border border-emerald-400/40">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>En vivo ({totalApuestasPartido} apuestas)</span>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {anonimosPartido.map((item, aIdx) => {
+                        const esTuSeleccion =
+                          tieneSeleccion &&
+                          String(current.local).trim() === String(item.local).trim() &&
+                          String(current.visitante).trim() === String(item.visitante).trim();
+
+                        return (
+                          <div
+                            key={aIdx}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-mono ${
+                              esTuSeleccion
+                                ? "bg-stone-900 text-white border-stone-900 shadow-xs ring-1 ring-stone-900/30"
+                                : "bg-white/40 border-white/60 text-stone-800"
+                            }`}
+                          >
+                            <span className="font-bold">{item.resultado}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                              esTuSeleccion ? "bg-white/20 text-white" : "bg-stone-900/10 text-stone-700"
+                            }`}>
+                              {item.repeticiones > 1 ? `×${item.repeticiones}` : "1"}
+                            </span>
+                            {esTuSeleccion && (
+                              <span className="text-[10px] font-sans font-bold text-emerald-400">✓ Tu elección</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
       </div>
     );
   }
@@ -241,6 +389,40 @@ export default function BoletoView({
         },
       };
     });
+    setFeedback(null);
+  };
+
+  const handleInputGoal = (matchKey, side, rawValue) => {
+    let val = String(rawValue || "").trim().toUpperCase();
+    if (val === "3") val = "M";
+    if (val === "" || val === "-") {
+      setPredictions((prev) => ({
+        ...prev,
+        [matchKey]: {
+          ...(prev[matchKey] || { local: null, visitante: null }),
+          [side]: null,
+        },
+      }));
+    } else if (GOAL_OPTIONS.includes(val)) {
+      setPredictions((prev) => ({
+        ...prev,
+        [matchKey]: {
+          ...(prev[matchKey] || { local: null, visitante: null }),
+          [side]: val,
+        },
+      }));
+    }
+    setFeedback(null);
+  };
+
+  const handleSelectBothGoals = (matchKey, localVal, visitanteVal) => {
+    setPredictions((prev) => ({
+      ...prev,
+      [matchKey]: {
+        local: localVal,
+        visitante: visitanteVal,
+      },
+    }));
     setFeedback(null);
   };
 
@@ -401,18 +583,28 @@ export default function BoletoView({
     setMostrarModalStats(true);
     setModalStatsData(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     try {
       const res = await fetch(
-        `${API_URL}/api/estadisticas/${encodeURIComponent(home)}/${encodeURIComponent(away)}`
+        `${API_URL}/api/estadisticas/${encodeURIComponent(home)}/${encodeURIComponent(away)}`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "No se pudieron obtener las estadísticas oficiales de este partido.");
       }
       setModalStatsData(data);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Error al cargar estadísticas:", err);
-      setModalStatsError(err.message || "Error al conectar con API-Sports V3.");
+      if (err.name === "AbortError") {
+        setModalStatsError("La consulta tardó más de 5 segundos. Pulsa en 'Reintentar' para obtener los datos.");
+      } else {
+        setModalStatsError(err.message || "Error al conectar con API-Sports V3.");
+      }
     } finally {
       setCargandoStatsKey(null);
     }
@@ -479,12 +671,19 @@ export default function BoletoView({
         </div>
       </section>
 
-      {/* Filas Planas de los 6 Partidos separadas por líneas sutiles */}
+      {/* Filas Planas de los 6 Partidos con marcadores y resultados anónimos en vivo */}
       <section className="space-y-4">
         {partidos.map((match, idx) => {
           const key = match.key || `partido${idx + 1}`;
           const current = predictions[key] || { local: null, visitante: null };
           const summary = getMatchSummary(current.local, current.visitante);
+          const anonimosPartido = apuestasAnonimas[key] || [];
+          const totalApuestasPartido = anonimosPartido.reduce((acc, curr) => acc + (curr.repeticiones || 1), 0);
+          const tieneSeleccion = current.local !== null && current.visitante !== null;
+          const seleccionActual = tieneSeleccion ? `${current.local} - ${current.visitante}` : null;
+          const coincideConAlguno = tieneSeleccion && anonimosPartido.some(
+            (item) => String(item.local).trim() === String(current.local).trim() && String(item.visitante).trim() === String(current.visitante).trim()
+          );
 
           return (
             <div
@@ -524,10 +723,21 @@ export default function BoletoView({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 items-center">
+                {/* Equipo Local */}
                 <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
                   <TeamName name={match.home} />
 
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <input
+                      type="text"
+                      id={`input-match-${idx + 1}-home`}
+                      value={current.local ?? ""}
+                      onChange={(e) => handleInputGoal(key, "local", e.target.value)}
+                      placeholder="-"
+                      maxLength={1}
+                      title={`Escribe el resultado para ${match.home} (0, 1, 2 o M)`}
+                      className="w-10 h-10 sm:w-12 sm:h-12 text-center font-mono font-black text-base sm:text-lg rounded-2xl bg-white/40 border border-white/60 focus:bg-white/80 focus:ring-2 focus:ring-stone-900 focus:outline-none text-stone-900 shadow-2xs mr-1 transition-all"
+                    />
                     {GOAL_OPTIONS.map((g) => {
                       const selected = current.local === g;
                       return (
@@ -549,10 +759,21 @@ export default function BoletoView({
                   </div>
                 </div>
 
+                {/* Equipo Visitante */}
                 <div className="flex items-center justify-between gap-3 sm:gap-4 min-w-0">
                   <TeamName name={match.away} />
 
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <input
+                      type="text"
+                      id={`input-match-${idx + 1}-away`}
+                      value={current.visitante ?? ""}
+                      onChange={(e) => handleInputGoal(key, "visitante", e.target.value)}
+                      placeholder="-"
+                      maxLength={1}
+                      title={`Escribe el resultado para ${match.away} (0, 1, 2 o M)`}
+                      className="w-10 h-10 sm:w-12 sm:h-12 text-center font-mono font-black text-base sm:text-lg rounded-2xl bg-white/40 border border-white/60 focus:bg-white/80 focus:ring-2 focus:ring-stone-900 focus:outline-none text-stone-900 shadow-2xs mr-1 transition-all"
+                    />
                     {GOAL_OPTIONS.map((g) => {
                       const selected = current.visitante === g;
                       return (
@@ -573,6 +794,96 @@ export default function BoletoView({
                     })}
                   </div>
                 </div>
+              </div>
+
+              {/* BLOQUE DE RESULTADOS YA APOSTADOS EN ESTE PARTIDO (SIN NOMBRES) */}
+              <div className="mt-5 pt-4 border-t border-white/40">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span>Resultados ya apostados en este partido:</span>
+                    </span>
+                    <span className="text-[10px] font-semibold text-stone-500 bg-white/50 border border-white/70 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      Sin nombres · Solo marcadores
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-800 border border-emerald-400/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>En directo</span>
+                      {totalApuestasPartido > 0 && (
+                        <span className="font-mono text-stone-700 font-extrabold ml-1">
+                          ({totalApuestasPartido} {totalApuestasPartido === 1 ? "apuesta" : "apuestas"})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {anonimosPartido.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {anonimosPartido.map((item, aIdx) => {
+                      const esSeleccionado =
+                        tieneSeleccion &&
+                        String(current.local).trim() === String(item.local).trim() &&
+                        String(current.visitante).trim() === String(item.visitante).trim();
+
+                      return (
+                        <button
+                          key={aIdx}
+                          type="button"
+                          onClick={() => {
+                            handleSelectBothGoals(key, item.local, item.visitante);
+                          }}
+                          title={`Aplicar ${item.resultado} a tu pronóstico (${item.repeticiones} persona${item.repeticiones > 1 ? "s ya lo han" : " ya lo ha"} apostado)`}
+                          className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                            esSeleccionado
+                              ? "bg-gradient-to-b from-neutral-900 to-black text-white border-stone-800 shadow-md scale-105 ring-2 ring-stone-900/30"
+                              : "bg-white/40 hover:bg-white/80 border-white/60 text-stone-800 shadow-2xs hover:scale-102 hover-negro-brillante"
+                          }`}
+                        >
+                          <span className="font-mono text-sm font-extrabold tracking-tight">
+                            {item.resultado}
+                          </span>
+
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                              esSeleccionado
+                                ? "bg-white/20 text-white"
+                                : "bg-stone-900/10 text-stone-700 group-hover:bg-stone-900/20"
+                            }`}
+                          >
+                            {item.repeticiones > 1 ? `${item.repeticiones} pers.` : "1 pers."}
+                          </span>
+
+                          {esSeleccionado && (
+                            <span className="text-[10px] font-sans font-bold text-emerald-400">
+                              ✓ Tu selección
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {tieneSeleccion && !coincideConAlguno && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/15 border border-amber-400/50 text-[11px] font-semibold text-amber-900 shadow-2xs">
+                        <span className="text-amber-600">✨</span>
+                        <span>Tu resultado <strong>{seleccionActual}</strong> es inédito en la peña (nadie más lo ha puesto)</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-2.5 px-4 rounded-2xl bg-white/25 border border-white/40 text-xs text-stone-500 font-medium flex items-center justify-between gap-2">
+                    <span>Aún no hay apuestas selladas para este partido por ningún miembro.</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-white/50 px-2.5 py-1 rounded-xl border border-white/60">
+                      ¡Sé el primero!
+                    </span>
+                  </div>
+                )}
               </div>
 
             </div>

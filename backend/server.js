@@ -3,20 +3,25 @@ import cors from "cors";
 import { PrismaClient } from "@prisma/client";
 import { obtenerEstadisticasPartido } from "./services/apiSportsService.js";
 
-try {
-  if (process.loadEnvFile) {
-    process.loadEnvFile();
-  }
-} catch (e) {
-  // Ignored
-}
-
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+try {
+  if (process.loadEnvFile) {
+    const envPath = path.join(__dirname, ".env");
+    if (fs.existsSync(envPath)) {
+      process.loadEnvFile(envPath);
+    } else {
+      process.loadEnvFile();
+    }
+  }
+} catch (e) {
+  // Ignored
+}
 
 const app = express();
 const prisma = new PrismaClient();
@@ -776,6 +781,91 @@ app.get("/api/jugadas", async (_req, res) => {
   } catch (error) {
     console.error("Error al obtener jugadas:", error);
     res.status(500).json({ error: "No se pudieron obtener las jugadas." });
+  }
+});
+
+// Endpoint para obtener los resultados ya apostados por partido para la jornada activa (completamente anónimo, sin nombres)
+app.get("/api/jornada/apuestas-anonimas", async (_req, res) => {
+  try {
+    const jornada = await prisma.jornada.findFirst({
+      where: { activa: true },
+    });
+
+    if (!jornada) {
+      return res.json({ jornadaNumero: null, totalJugadas: 0, partidos: {} });
+    }
+
+    const jugadas = await prisma.jugada.findMany({
+      where: { jornadaId: jornada.id },
+      select: { pronosticos: true, numeros: true },
+    });
+
+    const partidos = {};
+    for (let i = 1; i <= 6; i++) {
+      partidos[`partido${i}`] = [];
+    }
+
+    const conteos = {
+      partido1: {},
+      partido2: {},
+      partido3: {},
+      partido4: {},
+      partido5: {},
+      partido6: {},
+    };
+
+    jugadas.forEach((j) => {
+      let datos = null;
+      try {
+        datos = JSON.parse(j.pronosticos || j.numeros || "{}");
+      } catch {
+        datos = null;
+      }
+      if (!datos || typeof datos !== "object") return;
+
+      for (let i = 1; i <= 6; i++) {
+        const pKey = `partido${i}`;
+        const match = datos[pKey];
+        if (
+          match &&
+          match.local !== null &&
+          match.local !== undefined &&
+          match.visitante !== null &&
+          match.visitante !== undefined
+        ) {
+          const l = String(match.local).trim();
+          const v = String(match.visitante).trim();
+          if (l !== "" && v !== "" && l !== "-" && v !== "-") {
+            const combKey = `${l}-${v}`;
+            if (!conteos[pKey][combKey]) {
+              conteos[pKey][combKey] = {
+                resultado: `${l} - ${v}`,
+                local: l,
+                visitante: v,
+                repeticiones: 0,
+              };
+            }
+            conteos[pKey][combKey].repeticiones++;
+          }
+        }
+      }
+    });
+
+    for (let i = 1; i <= 6; i++) {
+      const pKey = `partido${i}`;
+      const lista = Object.values(conteos[pKey]);
+      lista.sort((a, b) => b.repeticiones - a.repeticiones);
+      partidos[pKey] = lista;
+    }
+
+    res.json({
+      jornadaNumero: jornada.numero,
+      totalJugadas: jugadas.length,
+      partidos,
+    });
+  } catch (error) {
+    console.error("Error al obtener apuestas anónimas:", error);
+    res.status(500).json({ error: "No se pudieron obtener las apuestas anónimas." });
   }
 });
 
@@ -2118,13 +2208,7 @@ Responde EXCLUSIVAMENTE con un JSON válido sin texto previo ni posterior, con e
 app.get("/api/estadisticas/:equipoLocal/:equipoVisitante", async (req, res) => {
   try {
     const { equipoLocal, equipoVisitante } = req.params;
-    const apiKey = process.env.API_SPORTS_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "API_SPORTS_KEY no está configurada en las variables de entorno del servidor.",
-      });
-    }
+    const apiKey = process.env.API_SPORTS_KEY || null;
 
     if (!equipoLocal || !equipoVisitante) {
       return res.status(400).json({
@@ -2157,12 +2241,7 @@ app.get("/api/estadisticas", async (req, res) => {
       });
     }
 
-    const apiKey = process.env.API_SPORTS_KEY;
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "API_SPORTS_KEY no está configurada en el servidor.",
-      });
-    }
+    const apiKey = process.env.API_SPORTS_KEY || null;
 
     const data = await obtenerEstadisticasPartido(
       String(local),
