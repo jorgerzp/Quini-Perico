@@ -696,6 +696,32 @@ app.post("/api/bote/reset", async (_req, res) => {
   }
 });
 
+// Actualizar puntos y aciertos de un usuario manualmente (Superadmin)
+app.post("/api/admin/usuario/puntos", async (req, res) => {
+  try {
+    const { usuarioId, puntos, aciertos } = req.body;
+    if (!usuarioId) {
+      return res.status(400).json({ error: "usuarioId requerido" });
+    }
+
+    const usuario = await prisma.usuario.update({
+      where: { id: Number(usuarioId) },
+      data: {
+        puntos: Number(puntos ?? 0),
+        aciertos: Number(aciertos ?? puntos ?? 0),
+      },
+    });
+
+    res.json({
+      message: `Puntos de ${usuario.nombre} actualizados a ${usuario.puntos} (Aciertos: ${usuario.aciertos}).`,
+      usuario,
+    });
+  } catch (error) {
+    console.error("Error al actualizar puntos:", error);
+    res.status(500).json({ error: "No se pudieron actualizar los puntos." });
+  }
+});
+
 
 // Función auxiliar para determinar si un partido cuenta con resultado oficial cerrado y válido
 function esPartidoFinalizado(val) {
