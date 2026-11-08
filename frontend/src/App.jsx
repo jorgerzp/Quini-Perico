@@ -223,15 +223,23 @@ export default function App() {
     }
   }, [seccionActiva, cargarPartidos, cargarUsuarios, cargarClasificacion]);
 
-  // Polling cada 6s para partidos, usuarios, notificaciones y clasificación en vivo
+  // Polling inteligente cada 20s para partidos, usuarios, notificaciones y clasificación en vivo
   useEffect(() => {
-    const interval = setInterval(() => {
+    const refrescarEnVivo = () => {
+      if (document.hidden) return; // No consumir cuota ni peticiones si la pestaña está en segundo plano
       cargarPartidos();
       cargarNotificaciones();
       cargarUsuarios();
       cargarClasificacion();
-    }, 6000);
-    return () => clearInterval(interval);
+    };
+
+    const interval = setInterval(refrescarEnVivo, 20000);
+    document.addEventListener("visibilitychange", refrescarEnVivo);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refrescarEnVivo);
+    };
   }, [cargarPartidos, cargarNotificaciones, cargarUsuarios, cargarClasificacion]);
 
   // Manejo de Login y Logout

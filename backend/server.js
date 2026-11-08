@@ -524,8 +524,15 @@ app.get("/api/usuarios", async (_req, res) => {
         }
       }
 
+      // Si el avatar es una cadena Base64 pesada, servir la URL ligera para evitar consumir gigabytes de transferencia
+      const avatarUrl =
+        u.avatar && u.avatar.startsWith("data:")
+          ? `/api/usuario/avatar/${encodeURIComponent(u.nombre)}`
+          : u.avatar || null;
+
       return {
         ...u,
+        avatar: avatarUrl,
         haJugado: !!jugada,
         jugadaActual: jugada ? JSON.parse(jugada.pronosticos || "{}") : null,
         jornadaActualId: jornadaActiva?.id || null,
