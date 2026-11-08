@@ -14,8 +14,9 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export default function App() {
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     try {
-      const storedLocal = localStorage.getItem(STORAGE_AUTH_KEY);
-      if (storedLocal) return JSON.parse(storedLocal);
+      // Limpiar cualquier sesión residual en localStorage para garantizar que
+      // al pinchar el enlace o abrir la app se muestre siempre la pantalla de login
+      localStorage.removeItem(STORAGE_AUTH_KEY);
       const storedSession = sessionStorage.getItem(STORAGE_AUTH_KEY);
       if (storedSession) return JSON.parse(storedSession);
       return null;
@@ -125,11 +126,7 @@ export default function App() {
             const refrescado = data.find((u) => u.id === actual.id || u.nombre === actual.nombre);
             if (refrescado) {
               try {
-                if (localStorage.getItem(STORAGE_AUTH_KEY)) {
-                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
-                } else if (sessionStorage.getItem(STORAGE_AUTH_KEY)) {
-                  sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
-                }
+                sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(refrescado));
               } catch {}
               return refrescado;
             }
@@ -142,17 +139,13 @@ export default function App() {
             const match = data.find((u) => u.id === usuarioLogueado.id || u.nombre === usuarioLogueado.nombre);
             if (match) {
               try {
-                if (localStorage.getItem(STORAGE_AUTH_KEY)) {
-                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
-                } else if (sessionStorage.getItem(STORAGE_AUTH_KEY)) {
-                  sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
-                }
+                sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(match));
               } catch {}
               return match;
             }
+            return usuarioLogueado;
           }
-          const jorge = data.find((u) => u.nombre === "Jorge");
-          return jorge || data[0] || null;
+          return null;
         });
       }
     } catch (err) {
@@ -242,17 +235,12 @@ export default function App() {
   }, [cargarPartidos, cargarNotificaciones, cargarUsuarios, cargarClasificacion]);
 
   // Manejo de Login y Logout
-  const handleLoginSuccess = (usuario, recordarme = true) => {
+  const handleLoginSuccess = (usuario) => {
     setUsuarioLogueado(usuario);
     setUsuarioActivo(usuario);
     try {
-      if (recordarme) {
-        localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
-        sessionStorage.removeItem(STORAGE_AUTH_KEY);
-      } else {
-        sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
-        localStorage.removeItem(STORAGE_AUTH_KEY);
-      }
+      sessionStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(usuario));
+      localStorage.removeItem(STORAGE_AUTH_KEY);
     } catch (e) {
       console.error(e);
     }

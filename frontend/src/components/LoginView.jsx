@@ -28,7 +28,7 @@ export default function LoginView({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const ejecutarLogin = async (user, pass) => {
+  const ejecutarLogin = async (user, pass, guardarPreferencia = true) => {
     setLoading(true);
     setError(null);
 
@@ -48,17 +48,19 @@ export default function LoginView({ onLoginSuccess }) {
         throw new Error(data.error || "Error de autenticación. Verifica tus credenciales.");
       }
 
-      // Persistir o limpiar el usuario recordado según la casilla marcada
-      try {
-        if (recordarme) {
-          localStorage.setItem(SAVED_USER_KEY, user.trim());
-          localStorage.setItem(REMEMBER_KEY, "true");
-        } else {
-          localStorage.removeItem(SAVED_USER_KEY);
-          localStorage.setItem(REMEMBER_KEY, "false");
+      // Persistir o limpiar únicamente el nombre de usuario recordado en el formulario
+      if (guardarPreferencia) {
+        try {
+          if (recordarme) {
+            localStorage.setItem(SAVED_USER_KEY, user.trim());
+            localStorage.setItem(REMEMBER_KEY, "true");
+          } else {
+            localStorage.removeItem(SAVED_USER_KEY);
+            localStorage.setItem(REMEMBER_KEY, "false");
+          }
+        } catch (e) {
+          console.warn("No se pudo guardar la preferencia de usuario:", e);
         }
-      } catch (e) {
-        console.warn("No se pudo guardar la preferencia de sesión:", e);
       }
 
       confetti({
@@ -67,9 +69,13 @@ export default function LoginView({ onLoginSuccess }) {
         origin: { y: 0.6 },
       });
 
-      onLoginSuccess(data.usuario, recordarme);
+      onLoginSuccess(data.usuario);
     } catch (err) {
-      setError(err.message);
+      if (err.name === "TypeError" && err.message?.toLowerCase().includes("fetch")) {
+        setError("No se puede conectar con el servidor. Verifica tu conexión a internet o el estado del servidor en Render.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -89,13 +95,13 @@ export default function LoginView({ onLoginSuccess }) {
       return;
     }
 
-    await ejecutarLogin(nombreLimpio, password);
+    await ejecutarLogin(nombreLimpio, password, true);
   };
 
   const handleAccesoDemo = async () => {
     setNombre("demo");
     setPassword("demo");
-    await ejecutarLogin("demo", "demo");
+    await ejecutarLogin("demo", "demo", false);
   };
 
   return (
@@ -162,7 +168,7 @@ export default function LoginView({ onLoginSuccess }) {
             </div>
           </div>
 
-          {/* Casilla Recordarme Siempre */}
+          {/* Casilla Recordar Usuario */}
           <div className="flex items-center justify-between px-1 pt-1">
             <label
               htmlFor="checkbox-recordarme"
@@ -176,11 +182,11 @@ export default function LoginView({ onLoginSuccess }) {
                 className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-800 cursor-pointer accent-stone-900"
               />
               <span className="text-xs font-semibold text-stone-600 group-hover:text-stone-900 transition-colors">
-                Recordarme siempre
+                Recordar mi usuario
               </span>
             </label>
             <span className="text-[11px] font-medium text-stone-400">
-              Mantener sesión abierta
+              Rellenar nombre automáticamente
             </span>
           </div>
 

@@ -139,14 +139,17 @@ export default function CambiarAvatarModal({
       const avatarFinal = data.avatar || imagenPreview;
       const timestampFinal = data.timestamp || Date.now();
 
-      // Actualizar localStorage si el usuario logueado es el que ha cambiado la foto
+      // Actualizar sesión si el usuario logueado es el que ha cambiado la foto
       try {
-        const stored = localStorage.getItem("quini_perico_auth_user");
+        const stored = sessionStorage.getItem("quini_perico_auth_user") || localStorage.getItem("quini_perico_auth_user");
         if (stored) {
           const u = JSON.parse(stored);
           if (u.nombre === usuarioSeleccionado) {
             u.avatar = avatarFinal;
-            localStorage.setItem("quini_perico_auth_user", JSON.stringify(u));
+            sessionStorage.setItem("quini_perico_auth_user", JSON.stringify(u));
+            if (localStorage.getItem("quini_perico_auth_user")) {
+              localStorage.setItem("quini_perico_auth_user", JSON.stringify(u));
+            }
           }
         }
       } catch {}

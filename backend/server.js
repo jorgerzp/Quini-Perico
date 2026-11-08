@@ -298,6 +298,19 @@ app.post("/api/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    const errorMsg = String(error?.message || "");
+    if (
+      errorMsg.includes("quota") ||
+      errorMsg.includes("exceeded") ||
+      errorMsg.includes("Can't reach database server") ||
+      error?.code === "53000" ||
+      error?.code === "P1001"
+    ) {
+      return res.status(503).json({
+        error:
+          "La base de datos (Neon) no está disponible o ha superado su cuota gratuita mensual. El administrador debe revisar el proyecto en neon.tech.",
+      });
+    }
     res.status(500).json({ error: "Error de autenticación en el servidor." });
   }
 });
