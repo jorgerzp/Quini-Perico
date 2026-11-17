@@ -350,13 +350,14 @@ app.post("/api/usuario/avatar", async (req, res) => {
       return res.status(404).json({ error: `El usuario '${clean}' no existe.` });
     }
 
-    // 1. Guardar en Base de Datos de manera 100% persistente (funciona en Vercel, Render y local)
+    // 1. Guardar en Base de Datos únicamente la ruta limpia (NUNCA Base64 para no consumir megabytes ni agotar cuotas)
+    const rutaAvatarLimpia = `/imagenes/logo-${usuario.nombre}.jpg`;
     await prisma.usuario.update({
       where: { id: usuario.id },
-      data: { avatar: imagenBase64 },
+      data: { avatar: rutaAvatarLimpia },
     });
 
-    console.log(`[Avatar] Foto de '${usuario.nombre}' guardada en la base de datos con éxito.`);
+    console.log(`[Avatar] Foto de '${usuario.nombre}' referenciada como ruta estática ligera.`);
 
     // 2. Extraer base64 y respaldar en disco si el sistema de archivos lo permite
     try {
